@@ -3,6 +3,7 @@ import { Auth } from "./components/Auth";
 import { GameList } from "./components/GameList";
 import { GameBoard } from "./components/GameBoard";
 import type { Game, Player, GameState } from "./types";
+import { RouteProvider, useRoute, routes } from "./routes";
 
 function checkWinner(board: Array<string | null>): string | null {
   const lines = [
@@ -35,10 +36,11 @@ function getAvailableMoves(board: Array<string | null>): number[] {
 function App() {
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [games, setGames] = useState<Game[]>([]);
-  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const route = useRoute();
 
   const handleAuth = (player: Player) => {
     setCurrentPlayer(player);
+    routes.gameList().push();
   };
 
   const handleCreateGame = () => {
@@ -57,8 +59,8 @@ function App() {
     setGames((prev) => [...prev, newGame]);
   };
 
-  const handleJoinGame = () => {
-    if (!currentPlayer || !selectedGame) return;
+  const handleJoinGame = (selectedGame: Game) => {
+    if (!currentPlayer) return;
 
     const updatedGame = {
       ...selectedGame,
@@ -69,12 +71,9 @@ function App() {
     setGames((prev) =>
       prev.map((game) => (game.id === selectedGame.id ? updatedGame : game))
     );
-    setSelectedGame(updatedGame);
   };
 
-  const handleAddAI = () => {
-    if (!selectedGame) return;
-
+  const handleAddAI = (selectedGame: Game) => {
     const aiPlayer: Player = {
       id: crypto.randomUUID(),
       name: "AI Player",
@@ -90,11 +89,10 @@ function App() {
     setGames((prev) =>
       prev.map((game) => (game.id === selectedGame.id ? updatedGame : game))
     );
-    setSelectedGame(updatedGame);
   };
 
-  const handleMove = (index: number) => {
-    if (!currentPlayer || !selectedGame || selectedGame.board[index]) return;
+  const handleMove = (selectedGame: Game, index: number) => {
+    if (!currentPlayer || selectedGame.board[index]) return;
 
     const newBoard = [...selectedGame.board];
     const currentPlayerSymbol =
@@ -120,7 +118,6 @@ function App() {
     setGames((prev) =>
       prev.map((game) => (game.id === selectedGame.id ? updatedGame : game))
     );
-    setSelectedGame(updatedGame);
 
     if (!winner && !isDraw && nextPlayer.isAI) {
       setTimeout(() => {
@@ -154,36 +151,58 @@ function App() {
               game.id === selectedGame.id ? afterAiGame : game
             )
           );
-          setSelectedGame(afterAiGame);
         }
       }, 500);
     }
   };
 
-  if (!currentPlayer) {
-    return <Auth onAuth={handleAuth} />;
+  // If not authenticated and not on auth page, redirect to auth
+  if (!currentPlayer && route.name !== "auth") {
+    routes.auth().push();
+    return null;
   }
 
-  if (selectedGame) {
-    return (
-      <GameBoard
-        game={selectedGame}
-        currentPlayer={currentPlayer}
-        onMove={handleMove}
-        onJoin={handleJoinGame}
-        onAddAI={handleAddAI}
-        onBack={() => setSelectedGame(null)}
-      />
-    );
+  // If authenticated and on auth page, redirect to game list
+  if (currentPlayer && route.name === "auth") {
+    routes.gameList().push();
+    return null;
   }
 
   return (
-    <GameList
-      games={games}
-      currentPlayer={currentPlayer}
-      onCreateGame={handleCreateGame}
-      onSelectGame={setSelectedGame}
-    />
+    <RouteProvider>
+      {route.name === "auth" && <Auth onAuth={handleAuth} />}
+
+      {route.name === "gameList" && (
+        <GameList
+          games={games}
+          currentPlayer={currentPlayer!}
+          onCreateGame={handleCreateGame}
+          onSelectGame={(game) => routes.gameBoard({ gameId: game.id }).push()}
+        />
+      )}
+
+      {route.name === "gameBoard" && route.params.gameId && (
+        <GameBoard
+          game={games.find((g) => g.id === route.params.gameId)!}
+          currentPlayer={currentPlayer!}
+          onMove={(index) => {
+            const game = games.find((g) => g.id === route.params.gameId);
+            if (game) handleMove(game, index);
+          }}
+          onJoin={() => {
+            const game = games.find((g) => g.id === route.params.gameId);
+            if (game) handleJoinGame(game);
+          }}
+          onAddAI={() => {
+            const game = games.find((g) => g.id === route.params.gameId);
+            if (game) handleAddAI(game);
+          }}
+          onBack={() => routes.gameList().push()}
+        />
+      )}
+
+      {route.name === false && <div>404 - Not Found</div>}
+    </RouteProvider>
   );
 }
 
