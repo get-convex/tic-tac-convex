@@ -1,10 +1,10 @@
 import { Auth } from "./components/Auth";
 import { GameList } from "./components/GameList";
 import { GameBoard } from "./components/GameBoard";
-import type { Player } from "./types";
 import { useRoute, routes } from "./routes";
 import { useGameState } from "./game/useGameState";
 import { useAIPlayer } from "./game/useAIPlayer";
+import { Redirect } from "./components/common/Redirect";
 
 function App() {
   const {
@@ -20,29 +20,24 @@ function App() {
 
   const route = useRoute();
 
-  // Set up AI player
   useAIPlayer(games, setGames);
 
-  const handleAuth = (player: Player) => {
-    setCurrentPlayer(player);
-    routes.gameList().push();
-  };
+  if (!currentPlayer && route.name !== "auth")
+    return <Redirect to={routes.auth} />;
 
-  // If not authenticated and not on auth page, redirect to auth
-  if (!currentPlayer && route.name !== "auth") {
-    routes.auth().push();
-    return null;
-  }
-
-  // If authenticated and on auth page, redirect to game list
-  if (currentPlayer && route.name === "auth") {
-    routes.gameList().push();
-    return null;
-  }
+  if (currentPlayer && route.name === "auth")
+    return <Redirect to={routes.gameList} />;
 
   return (
     <>
-      {route.name === "auth" && <Auth onAuth={handleAuth} />}
+      {route.name === "auth" && (
+        <Auth
+          onAuth={(player) => {
+            setCurrentPlayer(player);
+            routes.gameList().push();
+          }}
+        />
+      )}
 
       {route.name === "gameList" && (
         <GameList
