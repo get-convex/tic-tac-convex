@@ -14,4 +14,5 @@ export type Game = {
   winner: string | null;
   state: GameState;
   createdAt: number;
+  playerSymbols: Record<string, "X" | "O">;
 };

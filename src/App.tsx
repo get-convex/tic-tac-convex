@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Auth } from "./components/Auth";
 import { GameList } from "./components/GameList";
 import { GameBoard } from "./components/GameBoard";
@@ -34,8 +34,24 @@ function getAvailableMoves(board: Array<string | null>): number[] {
 }
 
 function App() {
-  const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
-  const [games, setGames] = useState<Game[]>([]);
+  const [currentPlayer, setCurrentPlayer] = useState<Player | null>(() => {
+    const saved = localStorage.getItem("currentPlayer");
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const [games, setGames] = useState<Game[]>(() => {
+    const saved = localStorage.getItem("games");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem("currentPlayer", JSON.stringify(currentPlayer));
+  }, [currentPlayer]);
+
+  useEffect(() => {
+    localStorage.setItem("games", JSON.stringify(games));
+  }, [games]);
+
   const route = useRoute();
 
   const handleAuth = (player: Player) => {
@@ -54,6 +70,9 @@ function App() {
       winner: null,
       state: "waiting",
       createdAt: Date.now(),
+      playerSymbols: {
+        [currentPlayer.id]: "X",
+      },
     };
 
     setGames((prev) => [...prev, newGame]);
@@ -62,10 +81,14 @@ function App() {
   const handleJoinGame = (selectedGame: Game) => {
     if (!currentPlayer) return;
 
-    const updatedGame = {
+    const updatedGame: Game = {
       ...selectedGame,
       players: [...selectedGame.players, currentPlayer],
       state: "playing" as const,
+      playerSymbols: {
+        ...selectedGame.playerSymbols,
+        [currentPlayer.id]: "O" as const,
+      },
     };
 
     setGames((prev) =>
@@ -80,10 +103,14 @@ function App() {
       isAI: true,
     };
 
-    const updatedGame = {
+    const updatedGame: Game = {
       ...selectedGame,
       players: [...selectedGame.players, aiPlayer],
       state: "playing" as const,
+      playerSymbols: {
+        ...selectedGame.playerSymbols,
+        [aiPlayer.id]: "O" as const,
+      },
     };
 
     setGames((prev) =>
@@ -95,8 +122,7 @@ function App() {
     if (!currentPlayer || selectedGame.board[index]) return;
 
     const newBoard = [...selectedGame.board];
-    const currentPlayerSymbol =
-      selectedGame.players.indexOf(currentPlayer) === 0 ? "X" : "O";
+    const currentPlayerSymbol = selectedGame.playerSymbols[currentPlayer.id];
     newBoard[index] = currentPlayerSymbol;
 
     const winner = checkWinner(newBoard);
@@ -126,8 +152,7 @@ function App() {
           const aiMoveIndex =
             availableMoves[Math.floor(Math.random() * availableMoves.length)];
           const aiBoard = [...newBoard];
-          const aiSymbol =
-            selectedGame.players.indexOf(nextPlayer) === 0 ? "X" : "O";
+          const aiSymbol = selectedGame.playerSymbols[nextPlayer.id];
           aiBoard[aiMoveIndex] = aiSymbol;
 
           const aiWinner = checkWinner(aiBoard);
