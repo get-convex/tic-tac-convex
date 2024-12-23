@@ -3,7 +3,7 @@ import { Auth } from "./components/Auth";
 import { GameList } from "./components/GameList";
 import { GameBoard } from "./components/GameBoard";
 import type { Game, Player, GameState } from "./types";
-import { RouteProvider, useRoute, routes } from "./routes";
+import { useRoute, routes } from "./routes";
 
 function checkWinner(board: Array<string | null>): string | null {
   const lines = [
@@ -144,42 +144,67 @@ function App() {
     setGames((prev) =>
       prev.map((game) => (game.id === selectedGame.id ? updatedGame : game))
     );
-
-    if (!winner && !isDraw && nextPlayer.kind === "ai") {
-      setTimeout(() => {
-        const availableMoves = getAvailableMoves(newBoard);
-        if (availableMoves.length > 0) {
-          const aiMoveIndex =
-            availableMoves[Math.floor(Math.random() * availableMoves.length)];
-          const aiBoard = [...newBoard];
-          const aiSymbol = selectedGame.playerSymbols[nextPlayer.id];
-          aiBoard[aiMoveIndex] = aiSymbol;
-
-          const aiWinner = checkWinner(aiBoard);
-          const aiIsDraw = !aiWinner && aiBoard.every((cell) => cell !== null);
-
-          const afterAiPlayer = selectedGame.players.find(
-            (p) => p.id !== nextPlayer.id
-          );
-          if (!afterAiPlayer) return;
-
-          const afterAiGame = {
-            ...updatedGame,
-            board: aiBoard,
-            currentPlayer: afterAiPlayer.id,
-            winner: aiWinner ? nextPlayer.id : null,
-            state: (aiWinner || aiIsDraw ? "finished" : "playing") as GameState,
-          };
-
-          setGames((prev) =>
-            prev.map((game) =>
-              game.id === selectedGame.id ? afterAiGame : game
-            )
-          );
-        }
-      }, 500);
-    }
   };
+
+  // Effect to handle AI moves
+  useEffect(() => {
+    if (route.name !== "gameBoard") return;
+
+    // Extract gameId early, with runtime validation
+    const gameId =
+      typeof route.params === "object" &&
+      route.params &&
+      "gameId" in route.params
+        ? String(route.params.gameId)
+        : null;
+    if (!gameId) return;
+
+    const currentGame = games.find((g) => g.id === gameId);
+    if (!currentGame) return;
+
+    const currentPlayerInGame = currentGame.players.find(
+      (p) => p.id === currentGame.currentPlayer
+    );
+    if (
+      !currentPlayerInGame ||
+      currentPlayerInGame.kind !== "ai" ||
+      currentGame.state !== "playing"
+    )
+      return;
+
+    const timeoutId = setTimeout(() => {
+      const availableMoves = getAvailableMoves(currentGame.board);
+      if (availableMoves.length === 0) return;
+
+      const aiMoveIndex =
+        availableMoves[Math.floor(Math.random() * availableMoves.length)];
+      const aiBoard = [...currentGame.board];
+      const aiSymbol = currentGame.playerSymbols[currentPlayerInGame.id];
+      aiBoard[aiMoveIndex] = aiSymbol;
+
+      const aiWinner = checkWinner(aiBoard);
+      const aiIsDraw = !aiWinner && aiBoard.every((cell) => cell !== null);
+
+      const afterAiPlayer = currentGame.players.find(
+        (p) => p.id !== currentPlayerInGame.id
+      );
+      if (!afterAiPlayer) return;
+
+      const afterAiGame = {
+        ...currentGame,
+        board: aiBoard,
+        currentPlayer: afterAiPlayer.id,
+        winner: aiWinner ? currentPlayerInGame.id : null,
+        state: (aiWinner || aiIsDraw ? "finished" : "playing") as GameState,
+      };
+
+      setGames((prev) =>
+        prev.map((game) => (game.id === currentGame.id ? afterAiGame : game))
+      );
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [games, route.name, route.params]);
 
   // If not authenticated and not on auth page, redirect to auth
   if (!currentPlayer && route.name !== "auth") {
@@ -194,7 +219,7 @@ function App() {
   }
 
   return (
-    <RouteProvider>
+    <>
       {route.name === "auth" && <Auth onAuth={handleAuth} />}
 
       {route.name === "gameList" && (
@@ -227,7 +252,7 @@ function App() {
       )}
 
       {route.name === false && <div>404 - Not Found</div>}
-    </RouteProvider>
+    </>
   );
 }
 
