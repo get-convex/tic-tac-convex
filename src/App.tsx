@@ -25,6 +25,13 @@ function checkWinner(board: Array<string | null>): string | null {
   return null;
 }
 
+function getAvailableMoves(board: Array<string | null>): number[] {
+  return board.reduce<number[]>((moves, cell, index) => {
+    if (cell === null) moves.push(index);
+    return moves;
+  }, []);
+}
+
 function App() {
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [games, setGames] = useState<Game[]>([]);
@@ -65,23 +72,47 @@ function App() {
     setSelectedGame(updatedGame);
   };
 
+  const handleAddAI = () => {
+    if (!selectedGame) return;
+
+    const aiPlayer: Player = {
+      id: crypto.randomUUID(),
+      name: "AI Player",
+      isAI: true,
+    };
+
+    const updatedGame = {
+      ...selectedGame,
+      players: [...selectedGame.players, aiPlayer],
+      state: "playing" as const,
+    };
+
+    setGames((prev) =>
+      prev.map((game) => (game.id === selectedGame.id ? updatedGame : game))
+    );
+    setSelectedGame(updatedGame);
+  };
+
   const handleMove = (index: number) => {
     if (!currentPlayer || !selectedGame || selectedGame.board[index]) return;
 
     const newBoard = [...selectedGame.board];
-    newBoard[index] =
+    const currentPlayerSymbol =
       currentPlayer.id === selectedGame.players[0].id ? "X" : "O";
+    newBoard[index] = currentPlayerSymbol;
 
     const winner = checkWinner(newBoard);
     const isDraw = !winner && newBoard.every((cell) => cell !== null);
 
+    const nextPlayer = selectedGame.players.find(
+      (p) => p.id !== currentPlayer.id
+    );
+    if (!nextPlayer) return;
+
     const updatedGame = {
       ...selectedGame,
       board: newBoard,
-      currentPlayer:
-        selectedGame.currentPlayer === selectedGame.players[0].id
-          ? selectedGame.players[1].id
-          : selectedGame.players[0].id,
+      currentPlayer: nextPlayer.id,
       winner: winner ? currentPlayer.id : null,
       state: (winner || isDraw ? "finished" : "playing") as GameState,
     };
@@ -90,6 +121,17 @@ function App() {
       prev.map((game) => (game.id === selectedGame.id ? updatedGame : game))
     );
     setSelectedGame(updatedGame);
+
+    if (!winner && !isDraw && nextPlayer.isAI) {
+      setTimeout(() => {
+        const availableMoves = getAvailableMoves(newBoard);
+        if (availableMoves.length > 0) {
+          const aiMoveIndex =
+            availableMoves[Math.floor(Math.random() * availableMoves.length)];
+          handleMove(aiMoveIndex);
+        }
+      }, 500);
+    }
   };
 
   if (!currentPlayer) {
@@ -103,6 +145,7 @@ function App() {
         currentPlayer={currentPlayer}
         onMove={handleMove}
         onJoin={handleJoinGame}
+        onAddAI={handleAddAI}
         onBack={() => setSelectedGame(null)}
       />
     );

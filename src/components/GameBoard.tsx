@@ -5,6 +5,7 @@ type GameBoardProps = {
   currentPlayer: Player;
   onMove: (index: number) => void;
   onJoin: () => void;
+  onAddAI: () => void;
   onBack: () => void;
 };
 
@@ -13,6 +14,7 @@ export function GameBoard({
   currentPlayer,
   onMove,
   onJoin,
+  onAddAI,
   onBack,
 }: GameBoardProps) {
   const isPlayerTurn = game.currentPlayer === currentPlayer.id;
@@ -63,6 +65,19 @@ export function GameBoard({
                   )}
                 </div>
               ))}
+              {game.state === "waiting" && (
+                <div className="p-3 rounded-lg bg-yellow-50 border-l-4 border-yellow-500 flex justify-between items-center">
+                  <span className="font-medium text-yellow-700">
+                    Waiting for second player...
+                  </span>
+                  <button
+                    onClick={onAddAI}
+                    className="bg-emerald-600 text-white py-1 px-4 rounded-lg hover:bg-emerald-700 transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 text-sm"
+                  >
+                    Add AI Player
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
