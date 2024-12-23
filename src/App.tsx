@@ -98,14 +98,14 @@ function App() {
 
     const newBoard = [...selectedGame.board];
     const currentPlayerSymbol =
-      currentPlayer.id === selectedGame.players[0].id ? "X" : "O";
+      selectedGame.players.indexOf(currentPlayer) === 0 ? "X" : "O";
     newBoard[index] = currentPlayerSymbol;
 
     const winner = checkWinner(newBoard);
     const isDraw = !winner && newBoard.every((cell) => cell !== null);
 
     const nextPlayer = selectedGame.players.find(
-      (p) => p.id !== currentPlayer.id
+      (p) => p.id !== selectedGame.currentPlayer
     );
     if (!nextPlayer) return;
 
@@ -113,7 +113,7 @@ function App() {
       ...selectedGame,
       board: newBoard,
       currentPlayer: nextPlayer.id,
-      winner: winner ? currentPlayer.id : null,
+      winner: winner ? selectedGame.currentPlayer : null,
       state: (winner || isDraw ? "finished" : "playing") as GameState,
     };
 
@@ -128,7 +128,33 @@ function App() {
         if (availableMoves.length > 0) {
           const aiMoveIndex =
             availableMoves[Math.floor(Math.random() * availableMoves.length)];
-          handleMove(aiMoveIndex);
+          const aiBoard = [...newBoard];
+          const aiSymbol =
+            selectedGame.players.indexOf(nextPlayer) === 0 ? "X" : "O";
+          aiBoard[aiMoveIndex] = aiSymbol;
+
+          const aiWinner = checkWinner(aiBoard);
+          const aiIsDraw = !aiWinner && aiBoard.every((cell) => cell !== null);
+
+          const afterAiPlayer = selectedGame.players.find(
+            (p) => p.id !== nextPlayer.id
+          );
+          if (!afterAiPlayer) return;
+
+          const afterAiGame = {
+            ...updatedGame,
+            board: aiBoard,
+            currentPlayer: afterAiPlayer.id,
+            winner: aiWinner ? nextPlayer.id : null,
+            state: (aiWinner || aiIsDraw ? "finished" : "playing") as GameState,
+          };
+
+          setGames((prev) =>
+            prev.map((game) =>
+              game.id === selectedGame.id ? afterAiGame : game
+            )
+          );
+          setSelectedGame(afterAiGame);
         }
       }, 500);
     }
