@@ -100,7 +100,7 @@ function App() {
     const aiPlayer: Player = {
       id: crypto.randomUUID(),
       name: "AI Player",
-      isAI: true,
+      kind: "ai",
     };
 
     const updatedGame: Game = {
@@ -145,7 +145,7 @@ function App() {
       prev.map((game) => (game.id === selectedGame.id ? updatedGame : game))
     );
 
-    if (!winner && !isDraw && nextPlayer.isAI) {
+    if (!winner && !isDraw && nextPlayer.kind === "ai") {
       setTimeout(() => {
         const availableMoves = getAvailableMoves(newBoard);
         if (availableMoves.length > 0) {

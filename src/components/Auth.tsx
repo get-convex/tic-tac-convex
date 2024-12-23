@@ -16,6 +16,7 @@ export function Auth({ onAuth }: AuthProps) {
     const player: Player = {
       name: name.trim(),
       id: crypto.randomUUID(),
+      kind: "human",
     };
     onAuth(player);
   };
@@ -24,7 +25,7 @@ export function Auth({ onAuth }: AuthProps) {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
       <div className="bg-white p-8 rounded-xl shadow-lg w-96 transform transition-all duration-300 hover:shadow-xl">
         <h1 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-indigo-600 to-blue-500 bg-clip-text text-transparent">
-          Welcome to Tic-Tac-Toe
+          Welcome to Tic-Tac-Convex
         </h1>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>

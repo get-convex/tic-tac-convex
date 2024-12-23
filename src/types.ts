@@ -1,7 +1,7 @@
 export type Player = {
   name: string;
   id: string;
-  isAI?: boolean;
+  kind: "human" | "ai";
 };
 
 export type GameState = "waiting" | "playing" | "finished";
