@@ -1,4 +1,5 @@
 import type { Game, Player } from "../types";
+import { Button } from "./common/Button";
 
 type GameBoardProps = {
   game: Game;
@@ -27,12 +28,13 @@ export function GameBoard({
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-xl shadow-lg p-8">
           <div className="flex justify-between items-center mb-8">
-            <button
+            <Button
+              variant="secondary"
               onClick={onBack}
-              className="text-gray-600 hover:text-gray-800 transition-colors flex items-center gap-2"
+              className="flex items-center gap-2"
             >
               <span className="text-lg">←</span> Back to Games
-            </button>
+            </Button>
             <div className="text-lg font-semibold text-indigo-600">
               Game #{game.id.slice(0, 8)}
             </div>
@@ -70,27 +72,23 @@ export function GameBoard({
                   <span className="font-medium text-yellow-700">
                     Waiting for second player...
                   </span>
-                  <button
+                  <Button
+                    variant="success"
                     onClick={onAddAI}
-                    className="bg-emerald-600 text-white py-1 px-4 rounded-lg hover:bg-emerald-700 transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 text-sm"
+                    className="py-1 px-4 text-sm"
                   >
                     Add AI Player
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
           </div>
 
-          {canJoin ? (
+          {canJoin && (
             <div className="text-center mb-8">
-              <button
-                onClick={onJoin}
-                className="bg-indigo-600 text-white py-2 px-6 rounded-lg hover:bg-indigo-700 transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-              >
-                Join Game
-              </button>
+              <Button onClick={onJoin}>Join Game</Button>
             </div>
-          ) : null}
+          )}
 
           <div className="grid grid-cols-3 gap-4 mb-8">
             {game.board.map((cell, index) => (

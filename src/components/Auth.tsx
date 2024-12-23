@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Player } from "../types";
+import { Button } from "./common/Button";
 
 type AuthProps = {
   onAuth: (player: Player) => void;
@@ -43,12 +44,9 @@ export function Auth({ onAuth }: AuthProps) {
               required
             />
           </div>
-          <button
-            type="submit"
-            className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-          >
+          <Button type="submit" className="w-full">
             Start Playing
-          </button>
+          </Button>
         </form>
       </div>
     </div>

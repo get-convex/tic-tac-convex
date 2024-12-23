@@ -1,4 +1,5 @@
 import type { Game, Player } from "../types";
+import { Button } from "./common/Button";
 
 type GameListProps = {
   games: Game[];
@@ -21,12 +22,7 @@ export function GameList({
             Welcome,{" "}
             <span className="text-indigo-600">{currentPlayer.name}</span>!
           </h1>
-          <button
-            onClick={onCreateGame}
-            className="bg-indigo-600 text-white py-2 px-6 rounded-lg hover:bg-indigo-700 transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-          >
-            Create New Game
-          </button>
+          <Button onClick={onCreateGame}>Create New Game</Button>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -83,12 +79,7 @@ export function GameList({
             <p className="text-gray-600 text-lg mb-4">
               No games available. Create a new one to start playing!
             </p>
-            <button
-              onClick={onCreateGame}
-              className="bg-indigo-600 text-white py-2 px-6 rounded-lg hover:bg-indigo-700 transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-            >
-              Create New Game
-            </button>
+            <Button onClick={onCreateGame}>Create New Game</Button>
           </div>
         )}
       </div>
