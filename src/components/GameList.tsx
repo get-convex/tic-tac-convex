@@ -54,6 +54,9 @@ export function GameList({
                 {player.id === currentPlayer.id && (
                   <span className="ml-2 text-sm text-indigo-600">(You)</span>
                 )}
+                {game.state === "finished" && game.winner === player.id && (
+                  <span className="ml-2 text-sm text-green-600">(Winner!)</span>
+                )}
               </span>
             </li>
           ))}
