@@ -1,9 +1,8 @@
 import { useState } from "react";
-import type { Player } from "../types";
 import { Button } from "./common/Button";
 
 type AuthProps = {
-  onAuth: (player: Player) => void;
+  onAuth: (name: string) => void;
 };
 
 export function Auth({ onAuth }: AuthProps) {
@@ -12,13 +11,7 @@ export function Auth({ onAuth }: AuthProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-
-    const player: Player = {
-      name: name.trim(),
-      id: crypto.randomUUID(),
-      kind: "human",
-    };
-    onAuth(player);
+    onAuth(name.trim());
   };
 
   return (
