@@ -1,18 +1,23 @@
+import { Id } from "../convex/_generated/dataModel";
+
 export type Player = {
+  id: Id<"players">;
   name: string;
-  id: string;
-  kind: "human" | "ai";
+  isAI: boolean;
 };
 
 export type GameState = "waiting" | "playing" | "finished";
 
 export type Game = {
-  id: string;
-  board: Array<string | null>;
-  players: Player[];
-  currentPlayer: string;
-  winner: string | null;
+  id: Id<"games">;
   state: GameState;
-  createdAt: number;
-  playerSymbols: Record<string, "X" | "O">;
+  players: Player[];
+  currentPlayerId: Id<"players">;
+  winnerId?: Id<"players">;
+  board: string[];
+  isDraw?: boolean;
+  playerSymbols: {
+    firstPlayerId: Id<"players">;
+    secondPlayerId?: Id<"players">;
+  };
 };
