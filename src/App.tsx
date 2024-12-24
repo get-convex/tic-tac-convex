@@ -26,8 +26,13 @@ function App() {
     addAI,
   } = useConvexGame(
     route.name === "gameBoard" && route.params.gameId
-      ? { gameId: route.params.gameId as Id<"games"> }
-      : undefined
+      ? {
+          gameId: route.params.gameId as Id<"games">,
+          playerId: currentPlayer?._id,
+        }
+      : currentPlayer
+        ? { playerId: currentPlayer._id }
+        : undefined
   );
 
   useEffect(() => {
@@ -57,8 +62,8 @@ function App() {
       board: game.board,
       players: game.players.map((playerId) => ({
         id: playerId,
-        name: "Player", // We'll need to fetch player names separately
-        kind: "human", // We'll need to fetch player kinds separately
+        name: playerId === currentPlayer?._id ? currentPlayer.name : "Player",
+        kind: playerId === currentPlayer?._id ? currentPlayer.kind : "human",
       })),
       currentPlayer: game.currentPlayer,
       winner: game.winner,

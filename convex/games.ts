@@ -10,11 +10,7 @@ export const get = query({
 export const getAvailableGames = query({
   args: {},
   handler: async (ctx) => {
-    const games = await ctx.db
-      .query("games")
-      .filter((q) => q.eq(q.field("state"), "waiting"))
-      .order("desc")
-      .collect();
+    const games = await ctx.db.query("games").order("desc").collect();
     return games;
   },
 });
