@@ -36,14 +36,15 @@ export function GameBoard({
               <span className="text-lg">←</span> Back to Games
             </Button>
             <div className="text-lg font-semibold text-indigo-600">
-              Game #{game.id.slice(0, 8)}
+              Game #
+              {typeof game.id === "string" ? game.id.slice(0, 8) : game.id}
               <span
                 className={`px-3 py-1 rounded-full text-sm font-medium ml-2 ${
                   game.state === "waiting"
                     ? "bg-yellow-100 text-yellow-700"
                     : game.state === "playing"
-                    ? "bg-green-100 text-green-700"
-                    : "bg-gray-100 text-gray-700"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gray-100 text-gray-700"
                 }`}
               >
                 {game.state.charAt(0).toUpperCase() + game.state.slice(1)}
@@ -107,20 +108,22 @@ export function GameBoard({
                 key={index}
                 onClick={() =>
                   isPlayerTurn &&
-                  !cell &&
+                  cell === "" &&
                   game.state === "playing" &&
                   onMove(index)
                 }
-                disabled={!isPlayerTurn || !!cell || game.state !== "playing"}
+                disabled={
+                  !isPlayerTurn || cell !== "" || game.state !== "playing"
+                }
                 className={`h-24 text-4xl font-bold rounded-lg transition-all duration-200 ${
-                  !cell && game.state === "playing" && isPlayerTurn
+                  cell === "" && game.state === "playing" && isPlayerTurn
                     ? "bg-gray-50 hover:bg-indigo-50 hover:shadow-md"
                     : "bg-gray-50"
                 } flex items-center justify-center ${
                   cell === "X" ? "text-indigo-600" : "text-pink-500"
                 }`}
               >
-                {cell}
+                {cell === "" ? null : cell}
               </button>
             ))}
           </div>

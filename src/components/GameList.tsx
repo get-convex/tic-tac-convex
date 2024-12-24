@@ -25,15 +25,15 @@ export function GameList({
     >
       <div className="flex justify-between items-center mb-4">
         <span className="text-lg font-semibold text-gray-800">
-          Game #{game.id.slice(0, 8)}
+          Game #{typeof game.id === "string" ? game.id.slice(0, 8) : game.id}
         </span>
         <span
           className={`px-3 py-1 rounded-full text-sm font-medium ${
             game.state === "waiting"
               ? "bg-yellow-100 text-yellow-700"
               : game.state === "playing"
-              ? "bg-green-100 text-green-700"
-              : "bg-gray-100 text-gray-700"
+                ? "bg-green-100 text-green-700"
+                : "bg-gray-100 text-gray-700"
           }`}
         >
           {game.state}

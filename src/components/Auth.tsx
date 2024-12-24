@@ -15,7 +15,7 @@ export function Auth({ onAuth }: AuthProps) {
 
     const player: Player = {
       name: name.trim(),
-      id: crypto.randomUUID(),
+      id: "",
       kind: "human",
     };
     onAuth(player);
