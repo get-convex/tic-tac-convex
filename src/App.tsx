@@ -2,38 +2,66 @@ import { Auth } from "./components/Auth";
 import { GameList } from "./components/GameList";
 import { GameBoard } from "./components/GameBoard";
 import { useRoute, routes } from "./routes";
-import { useGameState } from "./game/useGameState";
-import { useAIPlayer } from "./game/useAIPlayer";
+import { useConvexGame } from "./hooks/useConvexGame";
 import { Redirect } from "./components/common/Redirect";
+import { Id } from "../convex/_generated/dataModel";
 
 function App() {
   const {
     currentPlayer,
-    setCurrentPlayer,
     games,
-    setGames,
+    createPlayer,
     createGame,
     joinGame,
     addAI,
     makeMove,
-  } = useGameState();
+  } = useConvexGame();
 
   const route = useRoute();
 
-  useAIPlayer(games, setGames);
+  // Add debug logging
+  console.log("Current route:", route.name);
+  console.log("Current player:", currentPlayer);
+  console.log("Games:", games);
 
+  // Show loading state while we're fetching initial data
+  if (games === undefined) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-xl text-gray-600">Loading...</div>
+      </div>
+    );
+  }
+
+  // Handle authentication routing
   if (!currentPlayer && route.name !== "auth")
     return <Redirect to={routes.auth} />;
 
   if (currentPlayer && route.name === "auth")
     return <Redirect to={routes.gameList} />;
 
+  // Show loading state only if we're waiting for player data and we're not on the auth route
+  if (currentPlayer === undefined && route.name !== "auth") {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-xl text-gray-600">Loading player data...</div>
+      </div>
+    );
+  }
+
+  // Convert route param to Convex ID when on the gameBoard route
+  const gameId =
+    route.name === "gameBoard"
+      ? (route.params.gameId as unknown as Id<"games">)
+      : undefined;
+  const currentGame = gameId ? games.find((g) => g._id === gameId) : undefined;
+
   return (
     <>
       {route.name === "auth" && (
         <Auth
-          onAuth={(player) => {
-            setCurrentPlayer(player);
+          onAuth={async (name) => {
+            await createPlayer(name);
             routes.gameList().push();
           }}
         />
@@ -43,27 +71,20 @@ function App() {
         <GameList
           games={games}
           currentPlayer={currentPlayer!}
-          onCreateGame={() => currentPlayer && createGame(currentPlayer)}
-          onSelectGame={(game) => routes.gameBoard({ gameId: game.id }).push()}
+          onCreateGame={createGame}
+          onSelectGame={(game) =>
+            routes.gameBoard({ gameId: game._id as unknown as string }).push()
+          }
         />
       )}
 
-      {route.name === "gameBoard" && route.params.gameId && (
+      {route.name === "gameBoard" && gameId && currentGame && (
         <GameBoard
-          game={games.find((g) => g.id === route.params.gameId)!}
+          game={currentGame}
           currentPlayer={currentPlayer!}
-          onMove={(index) => {
-            const game = games.find((g) => g.id === route.params.gameId);
-            if (game) makeMove(game, index, currentPlayer!);
-          }}
-          onJoin={() => {
-            const game = games.find((g) => g.id === route.params.gameId);
-            if (game) joinGame(game, currentPlayer!);
-          }}
-          onAddAI={() => {
-            const game = games.find((g) => g.id === route.params.gameId);
-            if (game) addAI(game);
-          }}
+          onMove={(index) => makeMove(gameId, index)}
+          onJoin={() => joinGame(gameId)}
+          onAddAI={() => addAI(gameId)}
           onBack={() => routes.gameList().push()}
         />
       )}
