@@ -1,27 +1,49 @@
-import type { Game, Player } from "../types";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { Id } from "../../convex/_generated/dataModel";
 import { Button } from "./common/Button";
+import type { Player } from "../hooks/useGameState";
 
 type GameBoardProps = {
-  game: Game;
+  gameId: Id<"games">;
   currentPlayer: Player;
-  onMove: (index: number) => void;
-  onJoin: () => void;
-  onAddAI: () => void;
+  onMove: (index: number) => Promise<void>;
+  onJoin: () => Promise<void>;
+  onAddAI: () => Promise<void>;
   onBack: () => void;
 };
 
 export function GameBoard({
-  game,
+  gameId,
   currentPlayer,
   onMove,
   onJoin,
   onAddAI,
   onBack,
 }: GameBoardProps) {
-  const isPlayerTurn = game.currentPlayer === currentPlayer.id;
-  const isInGame = game.players.some((p) => p.id === currentPlayer.id);
+  const game = useQuery(api.games.get, { gameId });
+
+  // Always call hooks, but with undefined when IDs aren't available
+  const player1Query = useQuery(api.players.get, {
+    playerId: game?.playerIds[0],
+  });
+
+  const player2Query = useQuery(api.players.get, {
+    playerId: game?.playerIds[1],
+  });
+
+  const winnerQuery = useQuery(api.players.get, {
+    playerId: game?.winnerId,
+  });
+
+  if (!game) return null;
+
+  const players = [player1Query, player2Query];
+
+  const isPlayerTurn = game.currentPlayerId === currentPlayer._id;
+  const isInGame = game.playerIds.includes(currentPlayer._id);
   const canJoin =
-    game.state === "waiting" && !isInGame && game.players.length < 2;
+    game.state === "waiting" && !isInGame && game.playerIds.length < 2;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-8">
@@ -36,14 +58,14 @@ export function GameBoard({
               <span className="text-lg">←</span> Back to Games
             </Button>
             <div className="text-lg font-semibold text-indigo-600">
-              Game #{game.id.slice(0, 8)}
+              Game #{game._id.slice(0, 8)}
               <span
                 className={`px-3 py-1 rounded-full text-sm font-medium ml-2 ${
                   game.state === "waiting"
                     ? "bg-yellow-100 text-yellow-700"
                     : game.state === "playing"
-                    ? "bg-green-100 text-green-700"
-                    : "bg-gray-100 text-gray-700"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gray-100 text-gray-700"
                 }`}
               >
                 {game.state.charAt(0).toUpperCase() + game.state.slice(1)}
@@ -56,22 +78,22 @@ export function GameBoard({
               Players
             </h2>
             <div className="space-y-3">
-              {game.players.map((player) => (
+              {game.playerIds.map((playerId, index) => (
                 <div
-                  key={player.id}
+                  key={playerId}
                   className={`p-3 rounded-lg transition-all duration-300 ${
-                    game.currentPlayer === player.id
+                    game.currentPlayerId === playerId
                       ? "bg-indigo-100 border-l-4 border-indigo-500"
                       : "bg-gray-50"
                   }`}
                 >
                   <span className="font-medium text-gray-800">
-                    {player.name}
+                    {players[index]?.name ?? "Unknown Player"}
                   </span>
-                  {player.id === currentPlayer.id && (
+                  {playerId === currentPlayer._id && (
                     <span className="ml-2 text-sm text-indigo-600">(You)</span>
                   )}
-                  {game.currentPlayer === player.id && (
+                  {game.currentPlayerId === playerId && (
                     <span className="ml-2 text-sm text-green-600 animate-bounce-slow">
                       Current Turn
                     </span>
@@ -127,11 +149,11 @@ export function GameBoard({
 
           {game.state === "finished" && (
             <div className="text-center text-xl font-semibold p-4 bg-indigo-50 rounded-lg">
-              {game.winner ? (
+              {game.winnerId ? (
                 <div className="text-indigo-600">
                   Winner:{" "}
                   <span className="font-bold">
-                    {game.players.find((p) => p.id === game.winner)?.name}
+                    {winnerQuery?.name ?? "Unknown Player"}
                   </span>
                 </div>
               ) : (

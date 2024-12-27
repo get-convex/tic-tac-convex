@@ -1,60 +1,76 @@
-import type { Game, Player } from "../types";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { Id } from "../../convex/_generated/dataModel";
 import { Button } from "./common/Button";
+import type { Player } from "../hooks/useGameState";
 
 type GameListProps = {
-  games: Game[];
   currentPlayer: Player;
-  onCreateGame: () => void;
-  onSelectGame: (game: Game) => void;
+  onCreateGame: () => Promise<void>;
+  onSelectGame: (gameId: Id<"games">) => void;
 };
 
 export function GameList({
-  games,
   currentPlayer,
   onCreateGame,
   onSelectGame,
 }: GameListProps) {
+  const games = useQuery(api.games.list) ?? [];
   const activeGames = games.filter((game) => game.state !== "finished");
   const finishedGames = games.filter((game) => game.state === "finished");
 
-  const GameCard = ({ game }: { game: Game }) => (
+  // Get player names for each game
+  const getPlayerName = (playerId: Id<"players">) => {
+    const player = useQuery(api.players.get, { playerId });
+    return player?.name ?? "Unknown Player";
+  };
+
+  const GameCard = ({
+    game,
+  }: {
+    game: {
+      _id: Id<"games">;
+      state: string;
+      playerIds: Id<"players">[];
+      winnerId?: Id<"players">;
+    };
+  }) => (
     <div
-      key={game.id}
-      onClick={() => onSelectGame(game)}
+      onClick={() => onSelectGame(game._id)}
       className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1 cursor-pointer"
     >
       <div className="flex justify-between items-center mb-4">
         <span className="text-lg font-semibold text-gray-800">
-          Game #{game.id.slice(0, 8)}
+          Game #{game._id.slice(0, 8)}
         </span>
         <span
           className={`px-3 py-1 rounded-full text-sm font-medium ${
             game.state === "waiting"
               ? "bg-yellow-100 text-yellow-700"
               : game.state === "playing"
-              ? "bg-green-100 text-green-700"
-              : "bg-gray-100 text-gray-700"
+                ? "bg-green-100 text-green-700"
+                : "bg-gray-100 text-gray-700"
           }`}
         >
-          {game.state}
+          {game.state.charAt(0).toUpperCase() + game.state.slice(1)}
         </span>
       </div>
 
       <div className="space-y-3">
         <p className="text-gray-600 font-medium">Players:</p>
         <ul className="space-y-2">
-          {game.players.map((player) => (
+          {game.playerIds.map((playerId) => (
             <li
-              key={player.id}
+              key={playerId}
               className="flex items-center text-gray-700 gap-2"
             >
               <span className="w-2 h-2 rounded-full bg-indigo-400"></span>
               <span className="font-medium">
-                {player.name}
-                {player.id === currentPlayer.id && (
+                {getPlayerName(playerId)}
+                {playerId === currentPlayer._id && (
                   <span className="ml-2 text-sm text-indigo-600">(You)</span>
                 )}
-                {game.state === "finished" && game.winner === player.id && (
+                {game.state === "finished" && game.winnerId === playerId && (
                   <span className="ml-2 text-sm text-green-600">(Winner!)</span>
                 )}
               </span>
@@ -92,7 +108,7 @@ export function GameList({
             </h2>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {activeGames.map((game) => (
-                <GameCard key={game.id} game={game} />
+                <GameCard key={game._id} game={game} />
               ))}
             </div>
           </div>
@@ -105,7 +121,7 @@ export function GameList({
             </h2>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {finishedGames.map((game) => (
-                <GameCard key={game.id} game={game} />
+                <GameCard key={game._id} game={game} />
               ))}
             </div>
           </div>

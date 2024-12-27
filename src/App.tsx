@@ -2,16 +2,15 @@ import { Auth } from "./components/Auth";
 import { GameList } from "./components/GameList";
 import { GameBoard } from "./components/GameBoard";
 import { useRoute, routes } from "./routes";
-import { useGameState } from "./game/useGameState";
-import { useAIPlayer } from "./game/useAIPlayer";
+import { useGameState } from "./hooks/useGameState";
+import { useAIPlayer } from "./hooks/useAIPlayer";
 import { Redirect } from "./components/common/Redirect";
+import { Id } from "../convex/_generated/dataModel";
 
-function App() {
+export function App() {
   const {
     currentPlayer,
     setCurrentPlayer,
-    games,
-    setGames,
     createGame,
     joinGame,
     addAI,
@@ -20,7 +19,8 @@ function App() {
 
   const route = useRoute();
 
-  useAIPlayer(games, setGames);
+  // Handle AI moves
+  useAIPlayer();
 
   if (!currentPlayer && route.name !== "auth")
     return <Redirect to={routes.auth} />;
@@ -32,38 +32,33 @@ function App() {
     <>
       {route.name === "auth" && (
         <Auth
-          onAuth={(player) => {
-            setCurrentPlayer(player);
+          onAuth={async (name) => {
+            const player = await setCurrentPlayer(name);
             routes.gameList().push();
+            return player;
           }}
         />
       )}
 
       {route.name === "gameList" && (
         <GameList
-          games={games}
           currentPlayer={currentPlayer!}
-          onCreateGame={() => currentPlayer && createGame(currentPlayer)}
-          onSelectGame={(game) => routes.gameBoard({ gameId: game.id }).push()}
+          onCreateGame={createGame}
+          onSelectGame={(gameId) =>
+            routes.gameBoard({ gameId: gameId.toString() }).push()
+          }
         />
       )}
 
       {route.name === "gameBoard" && route.params.gameId && (
         <GameBoard
-          game={games.find((g) => g.id === route.params.gameId)!}
+          gameId={route.params.gameId as Id<"games">}
           currentPlayer={currentPlayer!}
-          onMove={(index) => {
-            const game = games.find((g) => g.id === route.params.gameId);
-            if (game) makeMove(game, index, currentPlayer!);
-          }}
-          onJoin={() => {
-            const game = games.find((g) => g.id === route.params.gameId);
-            if (game) joinGame(game, currentPlayer!);
-          }}
-          onAddAI={() => {
-            const game = games.find((g) => g.id === route.params.gameId);
-            if (game) addAI(game);
-          }}
+          onMove={(index) =>
+            makeMove(route.params.gameId as Id<"games">, index)
+          }
+          onJoin={() => joinGame(route.params.gameId as Id<"games">)}
+          onAddAI={() => addAI(route.params.gameId as Id<"games">)}
           onBack={() => routes.gameList().push()}
         />
       )}
@@ -72,5 +67,3 @@ function App() {
     </>
   );
 }
-
-export default App;
