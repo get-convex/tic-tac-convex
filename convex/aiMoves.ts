@@ -1,11 +1,10 @@
-import { internalMutation, internalQuery } from "./_generated/server";
+import { mutation, query, action } from "./_generated/server";
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
 import { getBestMove } from "./aiLogic";
-import { action } from "./_generated/server";
+import { api } from "./_generated/api";
 
-// Find games where it's AI's turn
-export const findGamesWithAITurn = internalQuery({
+// Query to get games where it's AI's turn
+export const getAIGames = query({
   args: {},
   handler: async (ctx) => {
     const games = await ctx.db
@@ -26,7 +25,7 @@ export const findGamesWithAITurn = internalQuery({
 });
 
 // Make a move for the AI
-export const makeAIMove = internalMutation({
+export const makeAIMove = mutation({
   args: { gameId: v.id("games") },
   handler: async (ctx, { gameId }) => {
     const game = await ctx.db.get(gameId);
@@ -61,10 +60,12 @@ export const makeAIMove = internalMutation({
 export const processAIMoves = action({
   args: {},
   handler: async (ctx) => {
-    const games = await ctx.runQuery(findGamesWithAITurn);
+    // Get all games with AI turns
+    const games = await ctx.runQuery(api.aiMoves.getAIGames);
 
+    // Process each game
     for (const game of games) {
-      await ctx.runMutation(makeAIMove, { gameId: game._id });
+      await ctx.runMutation(api.aiMoves.makeAIMove, { gameId: game._id });
       // Add a small delay to make the game feel more natural
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }

@@ -15,7 +15,6 @@ import type {
 } from "convex/server";
 import type * as aiLogic from "../aiLogic.js";
 import type * as aiMoves from "../aiMoves.js";
-import type * as crons from "../crons.js";
 import type * as games from "../games.js";
 import type * as players from "../players.js";
 
@@ -30,7 +29,6 @@ import type * as players from "../players.js";
 declare const fullApi: ApiFromModules<{
   aiLogic: typeof aiLogic;
   aiMoves: typeof aiMoves;
-  crons: typeof crons;
   games: typeof games;
   players: typeof players;
 }>;

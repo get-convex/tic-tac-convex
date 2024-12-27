@@ -1,5 +1,3 @@
-import { Game } from "./schema";
-
 export function getAvailableMoves(board: Array<"X" | "O" | null>): number[] {
   return board
     .map((cell, index) => (cell === null ? index : -1))
