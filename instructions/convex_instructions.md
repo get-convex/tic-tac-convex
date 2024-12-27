@@ -1,7 +1,13 @@
 
 # Adding Convex to an existing project
 
-You first need to run this once to setup Convex initially, this will create some files and folders for you.
+First include convex to the project
+
+```bash
+bun install convex
+```
+
+You will need to run this once to setup Convex initially, this will create some files and folders for you.
 
 ```bash
 bun convex dev --once --configure=new
