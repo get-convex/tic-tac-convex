@@ -1,50 +1,44 @@
-# React + TypeScript + Vite
+# Tic Tac Convex
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A small demo project to explore and experiment with AI Codegen and Convex.
 
-Currently, two official plugins are available:
+## Overview
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+This project is a web-based application for playing a multiplayer Tic-Tac-Toe game. It supports both human and AI players and provides a user-friendly interface for managing games and players.
 
-## Expanding the ESLint configuration
+### Types
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+- **Player**: Represents a player in the game, with attributes for name, ID, and type (human or AI).
+- **GameState**: Enum-like type representing the state of the game (waiting, playing, finished).
+- **Game**: Represents a game instance, including the board state, players, current player, winner, and other metadata.
 
-- Configure the top-level `parserOptions` property like this:
+### Main Application (`App.tsx`)
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+- The main component of the application, responsible for rendering the game interface and managing the game state.
+- Utilizes custom hooks like `useGameState` and `useAIPlayer` to manage game logic and AI behavior.
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+### Game Logic (`gameLogic.ts`)
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+- Contains core functions like `checkWinner` to determine the winner of the game based on the board state.
+- Provides utility functions like `getAvailableMoves` to assist in AI decision-making.
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
-```
+### State Management (`useGameState.ts`)
+
+- Manages the state of the game using React hooks.
+- Handles actions like creating a game, joining a game, adding an AI player, and making moves.
+- Persists game state in local storage for session continuity.
+
+### AI Player Logic (`useAIPlayer.ts`)
+
+- Implements AI behavior for the game.
+- Automatically makes moves for AI players when it's their turn.
+
+### Common Components
+
+- **Button (`Button.tsx`)**: A reusable button component with different styling variants (primary, secondary, success).
+- **Redirect (`Redirect.tsx`)**: A component for handling route redirection using the `type-route` library.
+
+### Routing (`routes.ts`)
+
+- Defines application routes using the `type-route` library.
+- Provides a `RouteProvider` and hooks for managing navigation within the app.
