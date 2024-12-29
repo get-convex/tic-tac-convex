@@ -1,7 +1,6 @@
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Id } from "../../convex/_generated/dataModel";
-import { Game, Player } from "../convex/types";
+import { Doc, Id } from "../../convex/_generated/dataModel";
 
 export function useConvexGame() {
   const games = useQuery(api.games.list) ?? [];
@@ -11,19 +10,23 @@ export function useConvexGame() {
   const addAI = useMutation(api.games.addAI);
   const createPlayer = useMutation(api.players.create);
 
-  const handleCreateGame = async (player: Player) => {
+  const handleCreateGame = async (player: Doc<"players">) => {
     await createGame({ playerId: player._id });
   };
 
-  const handleJoinGame = async (game: Game, player: Player) => {
+  const handleJoinGame = async (game: Doc<"games">, player: Doc<"players">) => {
     await joinGame({ gameId: game._id, playerId: player._id });
   };
 
-  const handleMakeMove = async (game: Game, index: number, player: Player) => {
+  const handleMakeMove = async (
+    game: Doc<"games">,
+    index: number,
+    player: Doc<"players">
+  ) => {
     await makeMove({ gameId: game._id, playerId: player._id, index });
   };
 
-  const handleAddAI = async (game: Game) => {
+  const handleAddAI = async (game: Doc<"games">) => {
     await addAI({ gameId: game._id });
   };
 

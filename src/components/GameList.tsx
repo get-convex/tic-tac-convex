@@ -1,11 +1,11 @@
-import type { Game, Player } from "../convex/types";
+import { Doc } from "../../convex/_generated/dataModel";
 import { Button } from "./common/Button";
 
 type GameListProps = {
-  games: Game[];
-  currentPlayer: Player;
+  games: Doc<"games">[];
+  currentPlayer: Doc<"players">;
   onCreateGame: () => void;
-  onSelectGame: (game: Game) => void;
+  onSelectGame: (game: Doc<"games">) => void;
 };
 
 export function GameList({

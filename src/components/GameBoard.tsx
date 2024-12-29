@@ -1,9 +1,9 @@
-import type { Game, Player } from "../convex/types";
+import { Doc } from "../../convex/_generated/dataModel";
 import { Button } from "./common/Button";
 
 type GameBoardProps = {
-  game: Game;
-  currentPlayer: Player;
+  game: Doc<"games">;
+  currentPlayer: Doc<"players">;
   onMove: (index: number) => void;
   onJoin: () => void;
   onAddAI: () => void;
