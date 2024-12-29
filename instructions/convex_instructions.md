@@ -1,7 +1,5 @@
 This document serves as some special instructions when working with Convex.
 
-You should check the Best Practices doc: https://docs.convex.dev/production/best-practices/
-
 # Schemas
 
 When designing the schema please see this page on built in System fields and data types available: https://docs.convex.dev/database/types
@@ -42,3 +40,24 @@ _id: The document ID of the document.
 _creationTime: The time this document was created, in milliseconds since the Unix epoch.
 
 You do not need to add indices as these are added automatically.
+
+# Best Practices (https://docs.convex.dev/production/best-practices/)
+
+## Database
+### Use indexes or paginate all large database queries.
+Database indexes with range expressions allow you to write efficient database queries that only scan a small number of documents in the table. Pagination allows you to quickly display incremental lists of results. If your table could contain more than a few thousand documents, you should consider pagination or an index with a range expression to ensure that your queries stay fast.
+
+For more details, check out our Introduction to Indexes and Query Performance article.
+
+### Use tables to separate logical object types.
+Even though Convex does support nested documents, it is often better to put separate objects into separate tables and use Ids to create references between them. This will give you more flexibility when loading and querying documents.
+
+You can read more about this at Document IDs.
+
+## Use helper functions to write shared code.
+Write helper functions in your convex/ directory and use them within your Convex functions. Helpers can be a powerful way to share business logic, authorization code, and more.
+
+Helper functions allow sharing code while still executing the entire query or mutation in a single transaction. For actions, sharing code via helper functions instead of using ctx.runAction reduces function calls and resource usage.
+
+## Prefer queries and mutations over actions
+You should generally avoid using actions when the same goal can be achieved using queries or mutations. Since actions can have side effects, they can't be automatically retried nor their results cached. Actions should be used in more limited scenarios, such as calling third-party services.
