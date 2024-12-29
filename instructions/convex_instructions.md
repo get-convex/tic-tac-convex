@@ -41,6 +41,54 @@ _creationTime: The time this document was created, in milliseconds since the Uni
 
 You do not need to add indices as these are added automatically.
 
+## Example Schema
+
+This is an example of a well crafted schema.
+
+```ts
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
+
+export default defineSchema(
+  {
+    users: defineTable({
+      name: v.string(),
+    }),
+    
+    sessions: defineTable({
+      userId: v.id("users"),
+      sessionId: v.string(),
+    }).index("sessionId", ["sessionId"]),
+    
+    threads: defineTable({
+      uuid: v.string(),
+      summary: v.optional(v.string()),
+      summarizer: v.optional(v.id("_scheduled_functions")),
+    }).index("uuid", ["uuid"]),
+
+    messages: defineTable({
+      message: v.string(),
+      threadId: v.id("threads"),
+      author: v.union(
+        v.object({
+          role: v.literal("system"),
+        }),
+        v.object({
+          role: v.literal("assistant"),
+          context: v.array(v.id("messages")),
+          model: v.optional(v.string()),
+        }),
+        v.object({
+          role: v.literal("user"),
+          userId: v.id("users"),
+        }),
+      ),
+    })
+      .index("threadId", ["threadId"]),
+  },
+);
+```
+
 # Best Practices (https://docs.convex.dev/production/best-practices/)
 
 ## Database
@@ -62,190 +110,44 @@ Helper functions allow sharing code while still executing the entire query or mu
 ## Prefer queries and mutations over actions
 You should generally avoid using actions when the same goal can be achieved using queries or mutations. Since actions can have side effects, they can't be automatically retried nor their results cached. Actions should be used in more limited scenarios, such as calling third-party services.
 
-# Additional
-The following text has been compressed by you (the LLM) to save space. Decode the text to reconstruct and understand the original context. The decoded text contains compressed information about Convex, React, and web development practices:
-# Convex Development Guide
+## The Zen of Convex (https://docs.convex.dev/zen)
 
-## General Development Specs
-CVX^dev^spec^React,Vite,Shadcn,TW^3xchk^code^run1st^
-Style: concise TS, func, decl, iter, mod, desc vars, struct: exp comp, subcomp, help, static, types
-Name: dash-dir, named exp
-TS: all, iface>type, no enum, func comp
-Syntax: func kw, concise, decl JSX
-Err: early, log, user-msg, Zod form, ret vals SA, err bound
-UI: Shadcn, Radix, TW, resp, mobile1st
-Perf: min useClient/Effect/State, RSC, Susp, dyn load, img opt
-Key: nuqs URL, Web Vitals, lim useClient
-CVX docs: data fetch, file store, HTTP Act
-react-router-dom route, TW style, Shadcn if avail
+### Performance
+Double down on the sync engine
+There's a reason why a deterministic, reactive database is the beating heart of Convex: the more you center your apps around its properties, the better your projects will fare over time. Your projects will be easier to understand and refactor. Your app's performance will stay screaming fast. You won't have any consistency or state management problems.
 
-## Convex Specifics
+Use a query for nearly every app read
+Queries are the reactive, automatically cacheable, consistent and resilient way to propagate data to your application and its jobs. With very few exceptions, every read operation in your app should happen via a query function.
 
-### Query
-// <typescript>
-import { query } from "./_generated/server";
-import { v } from "convex/values";
+Keep sync engine functions light & fast
+In general, your mutations and queries should be working with less than a few hundred records and should aim to finish in less than 100ms. It's nearly impossible to maintain a snappy, responsive app if your synchronous transactions involve a lot more work than this.
 
-export const getTaskList = query({
-  args: { taskListId: v.id("taskLists") },
-  handler: async (ctx, args) => {
-    const tasks = await ctx.db
-      .query("tasks")
-      .filter((q) => q.eq(q.field("taskListId"), args.taskListId))
-      .order("desc")
-      .take(100);
-    return tasks;
-  }
-});
-// </typescript>
+Use actions sparingly and incrementally
+Actions are wonderful for batch jobs and/or integrating with outside services. They're very powerful, but they're slower, more expensive, and Convex provides a lot fewer guarantees about their behavior. So never use an action if a query or mutation will get the job done.
 
-Name: path+file+export=api.path.name
-Nest: convex/foo/file.ts=api.foo.file.fn
-Def: export default=api.file.default
-Non-JS: string "path/file:fn"
-Constr: query({handler:()=>{}})
-Args: 2nd param, named, serialize
-Ctx: 1st param, db, storage, auth
-Helper: async function helper(ctx:QueryCtx, arg){}
-NPM: import{faker}from"@faker-js/faker"
+Don't over-complicate client-side state management
+Convex builds in a ton of its own caching and consistency controls into the app's client library. Rather than reinvent the wheel, let your client-side code take advantage of these built-in performance boosts.
 
-**IMPORTANT: Prefer to use Convex indexes over filters**. Here's an example:
+Let Convex handle caching & consistency
+Be thoughtful about the return values of mutations
 
-// <typescript>
-// schema.ts
-import { defineSchema, defineTable } from "convex/server";
-import { v } from "convex/values";
-
-// Define a messages table with two indexes.
-export default defineSchema({
-  messages: defineTable({
-    channel: v.id("channels"),
-    body: v.string(),
-    user: v.id("users"),
-  })
-    .index("by_channel", ["channel"])
-    .index("by_channel_user", ["channel", "user"]),
-});
-// </typescript>
-
-And use an index like this (note the syntax is different than filter):
-
-// <typescript>
-const messages = await ctx.db
-  .query("messages")
-  .withIndex("by_channel", (q) =>
-    q
-      .eq("channel", channel)
-      .gt("_creationTime", Date.now() - 2 * 60000)
-      .lt("_creationTime", Date.now() - 60000),
-  )
-  .collect();
-// </typescript>
+### Architecture
+Create server-side frameworks using "just code"
+Convex's built-in primitives are pretty low level! They're just functions. What about authentication frameworks? What about object-relational mappings? Do you need to wait until Convex ships some in-built feature to get those? Nope. In general, you should solve composition and encapsulation problems in your server-side Convex code using the same methods you use for the rest of your TypeScript code bases. After all, this is why Convex is "just code!" Stack always has great examples of ways to tackle these needs.
 
 
-### Mutation
-// <typescript>
-import { mutation } from "./_generated/server";
-import { v } from "convex/values";
+Don't misuse actions
+Actions are powerful, but it's important to be intentional in how they fit into your app's data flow.
 
-export const createTask = mutation({
-  args: { text: v.string() },
-  handler: async (ctx, args) => {
-    const newTaskId = await ctx.db.insert("tasks", { text: args.text });
-    return newTaskId;
-  }
-});
-// </typescript>
+Don't invoke actions directly from your app
+In general, it's an anti-pattern to call actions from the browser. Usually, actions are running on some dependent record that should be living in a Convex table. So it's best trigger actions by invoking a mutation that both writes that dependent record and schedules the subsequent action to run in the background.
 
-### Action
-// <typescript>
-import { action } from "./_generated/server";
-import { internal } from "./_generated/api";
-import { v } from "convex/values";
+Don't think 'background jobs', think 'workflow'
+When actions are involved, it's useful to write chains of effects and mutations, such as:
 
-export const sendGif = action({
-  args: { queryString: v.string(), author: v.string() },
-  handler: async (ctx, { queryString, author }) => {
-    const data = await fetch(giphyUrl(queryString));
-    const json = await data.json();
-    if (!data.ok) {
-      throw new Error("Giphy error: " + JSON.stringify(json));
-    }
-    const gifEmbedUrl = json.data.embed_url;
-    await ctx.runMutation(internal.messages.sendGifMessage, {
-      body: gifEmbedUrl,
-      author
-    });
-  }
-});
-// </typescript>
+action code → mutation → more action code → mutation.
 
-### HTTP Router
-// <typescript>
-import { httpRouter } from "convex/server";
+Then apps or other jobs can follow along with queries.
 
-const http = httpRouter();
-http.route({
-  path: "/postMessage",
-  method: "POST",
-  handler: postMessage,
-});
-http.route({
-  pathPrefix: "/getAuthorMessages/",
-  method: "GET",
-  handler: getByAuthorPathSuffix,
-});
-export default http;
-// </typescript>
-
-### Scheduled Jobs
-// <typescript>
-import { cronJobs } from "convex/server";
-import { internal } from "./_generated/api";
-
-const crons = cronJobs();
-crons.interval(
-  "clear messages table",
-  { minutes: 1 },
-  internal.messages.clearAll,
-);
-crons.monthly(
-  "payment reminder",
-  { day: 1, hourUTC: 16, minuteUTC: 0 },
-  internal.payments.sendPaymentEmail,
-  { email: "my_email@gmail.com" },
-);
-export default crons;
-// </typescript>
-
-### File Handling
-Upload: 3 steps (genURL, POST, saveID)
-
-Generate Upload URL:
-// <typescript>
-import { mutation } from "./_generated/server";
-
-export const generateUploadUrl = mutation(async (ctx) => {
-  return await ctx.storage.generateUploadUrl();
-});
-// </typescript>
-
-Save File ID:
-// <typescript>
-import { mutation } from "./_generated/server";
-import { v } from "convex/values";
-
-export const sendImage = mutation({
-  args: { storageId: v.id("_storage"), author: v.string() },
-  handler: async (ctx, args) => {
-    await ctx.db.insert("messages", {
-      body: args.storageId,
-      author: args.author,
-      format: "image",
-    });
-  }
-});
-// </typescript>
-  
-Follow Convex docs for Data Fetching, File Storage, Vector Databases, and Auth.
-Follow TanStack Docs for routing.
+Record progress one step at a time
+While actions could work with thousands of records and call dozens of APIs, it's normally best to do smaller batches of work and/or to perform individual transformations with outside services. Then record your progress with a mutation, of course. Using this pattern makes it easy to debug issues, resume partial jobs, and report incremental progress in your app's UI.
