@@ -16,14 +16,18 @@ export default defineSchema({
     ),
     currentPlayerId: v.id("players"),
     winnerId: v.optional(v.id("players")),
-    playerSymbols: v.object({
-      playerOneId: v.id("players"),
-      playerTwoId: v.optional(v.id("players")),
-      playerOneSymbol: v.literal("X"),
-      playerTwoSymbol: v.literal("O"),
+    playerOne: v.object({
+      id: v.id("players"),
+      symbol: v.literal("X"),
     }),
+    playerTwo: v.optional(
+      v.object({
+        id: v.id("players"),
+        symbol: v.literal("O"),
+      })
+    ),
   })
     .index("by_state", ["state"])
-    .index("by_player", ["playerSymbols.playerOneId"])
-    .index("by_player_two", ["playerSymbols.playerTwoId"]),
+    .index("by_player", ["playerOne.id"])
+    .index("by_player_two", ["playerTwo.id"]),
 });

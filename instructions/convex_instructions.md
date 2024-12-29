@@ -89,6 +89,27 @@ export default defineSchema(
 );
 ```
 
+# Typescript
+
+Type annotating client-side code
+When you want to pass the result of calling a function around your client codebase, you can use the generated types Doc and Id, just like on the backend:
+
+```tsx
+import { Doc, Id } from "../convex/_generated/dataModel";
+
+function Channel(props: { channelId: Id<"channels"> }) {
+  // ...
+}
+
+function MessagesView(props: { message: Doc<"messages"> }) {
+  // ...
+}
+```
+
+You can also declare custom types inside your backend codebase which include Docs and Ids, and import them in your client-side code.
+
+You can also use WithoutSystemFields and any types inferred from validators via Infer.
+
 # Best Practices (https://docs.convex.dev/production/best-practices/)
 
 ## Database

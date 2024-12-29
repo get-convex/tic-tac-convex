@@ -1,4 +1,4 @@
-import type { Game, Player } from "../types";
+import type { Game, Player } from "../convex/types";
 import { Button } from "./common/Button";
 
 type GameBoardProps = {
@@ -18,10 +18,11 @@ export function GameBoard({
   onAddAI,
   onBack,
 }: GameBoardProps) {
-  const isPlayerTurn = game.currentPlayer === currentPlayer.id;
-  const isInGame = game.players.some((p) => p.id === currentPlayer.id);
-  const canJoin =
-    game.state === "waiting" && !isInGame && game.players.length < 2;
+  const isPlayerTurn = game.currentPlayerId === currentPlayer._id;
+  const isInGame =
+    game.playerOne.id === currentPlayer._id ||
+    game.playerTwo?.id === currentPlayer._id;
+  const canJoin = game.state === "waiting" && !isInGame && !game.playerTwo;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-8">
@@ -36,14 +37,14 @@ export function GameBoard({
               <span className="text-lg">←</span> Back to Games
             </Button>
             <div className="text-lg font-semibold text-indigo-600">
-              Game #{game.id.slice(0, 8)}
+              Game #{game._id.slice(0, 8)}
               <span
                 className={`px-3 py-1 rounded-full text-sm font-medium ml-2 ${
                   game.state === "waiting"
                     ? "bg-yellow-100 text-yellow-700"
                     : game.state === "playing"
-                    ? "bg-green-100 text-green-700"
-                    : "bg-gray-100 text-gray-700"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gray-100 text-gray-700"
                 }`}
               >
                 {game.state.charAt(0).toUpperCase() + game.state.slice(1)}
@@ -56,41 +57,57 @@ export function GameBoard({
               Players
             </h2>
             <div className="space-y-3">
-              {game.players.map((player) => (
+              <div
+                className={`p-3 rounded-lg transition-all duration-300 ${
+                  game.currentPlayerId === game.playerOne.id
+                    ? "bg-indigo-100 border-l-4 border-indigo-500"
+                    : "bg-gray-50"
+                }`}
+              >
+                <span className="font-medium text-gray-800">
+                  {game.playerOne.id === currentPlayer._id ? "You" : "Player 1"}
+                </span>
+                {game.currentPlayerId === game.playerOne.id && (
+                  <span className="ml-2 text-sm text-green-600 animate-bounce-slow">
+                    Current Turn
+                  </span>
+                )}
+              </div>
+
+              {game.playerTwo ? (
                 <div
-                  key={player.id}
                   className={`p-3 rounded-lg transition-all duration-300 ${
-                    game.currentPlayer === player.id
+                    game.currentPlayerId === game.playerTwo.id
                       ? "bg-indigo-100 border-l-4 border-indigo-500"
                       : "bg-gray-50"
                   }`}
                 >
                   <span className="font-medium text-gray-800">
-                    {player.name}
+                    {game.playerTwo.id === currentPlayer._id
+                      ? "You"
+                      : "Player 2"}
                   </span>
-                  {player.id === currentPlayer.id && (
-                    <span className="ml-2 text-sm text-indigo-600">(You)</span>
-                  )}
-                  {game.currentPlayer === player.id && (
+                  {game.currentPlayerId === game.playerTwo.id && (
                     <span className="ml-2 text-sm text-green-600 animate-bounce-slow">
                       Current Turn
                     </span>
                   )}
                 </div>
-              ))}
-              {game.state === "waiting" && (
-                <div className="p-3 rounded-lg bg-yellow-50 border-l-4 border-yellow-500 flex justify-between items-center">
-                  <span className="font-medium text-yellow-700">
-                    Waiting for second player...
-                  </span>
-                  <Button
-                    variant="success"
-                    onClick={onAddAI}
-                    className="py-1 px-4 text-sm"
-                  >
-                    Add AI Player
-                  </Button>
-                </div>
+              ) : (
+                game.state === "waiting" && (
+                  <div className="p-3 rounded-lg bg-yellow-50 border-l-4 border-yellow-500 flex justify-between items-center">
+                    <span className="font-medium text-yellow-700">
+                      Waiting for second player...
+                    </span>
+                    <Button
+                      variant="success"
+                      onClick={onAddAI}
+                      className="py-1 px-4 text-sm"
+                    >
+                      Add AI Player
+                    </Button>
+                  </div>
+                )
               )}
             </div>
           </div>
@@ -127,12 +144,11 @@ export function GameBoard({
 
           {game.state === "finished" && (
             <div className="text-center text-xl font-semibold p-4 bg-indigo-50 rounded-lg">
-              {game.winner ? (
+              {game.winnerId ? (
                 <div className="text-indigo-600">
-                  Winner:{" "}
-                  <span className="font-bold">
-                    {game.players.find((p) => p.id === game.winner)?.name}
-                  </span>
+                  {game.winnerId === currentPlayer._id
+                    ? "You won!"
+                    : "You lost!"}
                 </div>
               ) : (
                 <div className="text-gray-600">It's a draw!</div>

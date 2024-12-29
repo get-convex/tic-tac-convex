@@ -1,6 +1,5 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { checkWinner } from "./gameLogic";
 
 export const list = query({
   args: {},
@@ -23,12 +22,10 @@ export const create = mutation({
       board: Array(9).fill(null),
       state: "waiting",
       currentPlayerId: playerId,
-      winnerId: null,
-      playerSymbols: {
-        playerOneId: playerId,
-        playerTwoId: null,
-        playerOneSymbol: "X",
-        playerTwoSymbol: "O",
+      winnerId: undefined,
+      playerOne: {
+        id: playerId,
+        symbol: "X",
       },
     });
   },
@@ -41,13 +38,13 @@ export const join = mutation({
     if (!game) throw new Error("Game not found");
     if (game.state !== "waiting")
       throw new Error("Game is not waiting for players");
-    if (game.playerSymbols.playerTwoId) throw new Error("Game is full");
+    if (game.playerTwo) throw new Error("Game is full");
 
     return await ctx.db.patch(gameId, {
       state: "playing",
-      playerSymbols: {
-        ...game.playerSymbols,
-        playerTwoId: playerId,
+      playerTwo: {
+        id: playerId,
+        symbol: "O",
       },
     });
   },
@@ -66,25 +63,40 @@ export const makeMove = mutation({
       throw new Error("Game is not in playing state");
     if (game.currentPlayerId !== playerId) throw new Error("Not your turn");
     if (game.board[index]) throw new Error("Cell already occupied");
+    if (!game.playerTwo) throw new Error("Game not ready");
 
     const newBoard = [...game.board];
-    const isPlayerOne = playerId === game.playerSymbols.playerOneId;
+    const isPlayerOne = playerId === game.playerOne.id;
     const symbol = isPlayerOne ? "X" : "O";
     newBoard[index] = symbol;
 
-    const winner = checkWinner(newBoard);
-    const isDraw = !winner && newBoard.every((cell) => cell !== null);
-    const nextPlayerId = isPlayerOne
-      ? game.playerSymbols.playerTwoId
-      : game.playerSymbols.playerOneId;
+    // Check for winner
+    const lines = [
+      [0, 1, 2],
+      [3, 4, 5],
+      [6, 7, 8],
+      [0, 3, 6],
+      [1, 4, 7],
+      [2, 5, 8],
+      [0, 4, 8],
+      [2, 4, 6],
+    ];
 
-    if (!nextPlayerId) throw new Error("Next player not found");
+    const hasWinner = lines.some(
+      ([a, b, c]) =>
+        newBoard[a] &&
+        newBoard[a] === newBoard[b] &&
+        newBoard[a] === newBoard[c]
+    );
+
+    const isDraw = !hasWinner && newBoard.every((cell) => cell !== null);
+    const nextPlayerId = isPlayerOne ? game.playerTwo.id : game.playerOne.id;
 
     return await ctx.db.patch(gameId, {
       board: newBoard,
       currentPlayerId: nextPlayerId,
-      winnerId: winner ? playerId : null,
-      state: winner || isDraw ? "finished" : "playing",
+      winnerId: hasWinner ? playerId : undefined,
+      state: hasWinner || isDraw ? "finished" : "playing",
     });
   },
 });
@@ -96,7 +108,7 @@ export const addAI = mutation({
     if (!game) throw new Error("Game not found");
     if (game.state !== "waiting")
       throw new Error("Game is not waiting for players");
-    if (game.playerSymbols.playerTwoId) throw new Error("Game is full");
+    if (game.playerTwo) throw new Error("Game is full");
 
     // Create AI player
     const aiPlayerId = await ctx.db.insert("players", {
@@ -106,9 +118,9 @@ export const addAI = mutation({
 
     return await ctx.db.patch(gameId, {
       state: "playing",
-      playerSymbols: {
-        ...game.playerSymbols,
-        playerTwoId: aiPlayerId,
+      playerTwo: {
+        id: aiPlayerId,
+        symbol: "O",
       },
     });
   },
