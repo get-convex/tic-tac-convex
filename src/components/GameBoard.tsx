@@ -2,14 +2,14 @@ import { Doc } from "../../convex/_generated/dataModel";
 import { Button } from "./common/Button";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { routes } from "../routes";
 
 type GameBoardProps = {
   currentPlayer: Doc<"players">;
-  onBack: () => void;
   gameId: string;
 };
 
-export function GameBoard({ currentPlayer, onBack, gameId }: GameBoardProps) {
+export function GameBoard({ currentPlayer, gameId }: GameBoardProps) {
   const games = useQuery(api.games.list) ?? [];
   const joinGame = useMutation(api.games.join);
   const makeMove = useMutation(api.games.makeMove);
@@ -31,7 +31,7 @@ export function GameBoard({ currentPlayer, onBack, gameId }: GameBoardProps) {
           <div className="flex justify-between items-center mb-8">
             <Button
               variant="secondary"
-              onClick={onBack}
+              onClick={() => routes.gameList().push()}
               className="flex items-center gap-2"
             >
               <span className="text-lg">←</span> Back to Games

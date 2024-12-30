@@ -2,13 +2,13 @@ import { Doc } from "../../convex/_generated/dataModel";
 import { Button } from "./common/Button";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { routes } from "../routes";
 
 type GameListProps = {
   currentPlayer: Doc<"players">;
-  onSelectGame: (game: Doc<"games">) => void;
 };
 
-export function GameList({ currentPlayer, onSelectGame }: GameListProps) {
+export function GameList({ currentPlayer }: GameListProps) {
   const games = useQuery(api.games.list) ?? [];
   const createGame = useMutation(api.games.create);
 
@@ -31,7 +31,7 @@ export function GameList({ currentPlayer, onSelectGame }: GameListProps) {
             {sortedGames.map((game) => (
               <button
                 key={game._id}
-                onClick={() => onSelectGame(game)}
+                onClick={() => routes.gameBoard({ gameId: game._id }).push()}
                 className="w-full p-4 bg-gray-50 hover:bg-indigo-50 rounded-lg transition-colors duration-200 text-left"
               >
                 <div className="flex justify-between items-center">

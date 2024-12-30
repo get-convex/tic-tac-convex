@@ -48,18 +48,11 @@ function App() {
       )}
 
       {route.name === "gameList" && currentPlayer && (
-        <GameList
-          currentPlayer={currentPlayer}
-          onSelectGame={(game) => routes.gameBoard({ gameId: game._id }).push()}
-        />
+        <GameList currentPlayer={currentPlayer} />
       )}
 
       {route.name === "gameBoard" && route.params.gameId && currentPlayer && (
-        <GameBoard
-          gameId={route.params.gameId}
-          currentPlayer={currentPlayer}
-          onBack={() => routes.gameList().push()}
-        />
+        <GameBoard gameId={route.params.gameId} currentPlayer={currentPlayer} />
       )}
 
       {route.name === false && <div>404 - Not Found</div>}
