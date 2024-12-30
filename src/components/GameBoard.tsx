@@ -1,23 +1,23 @@
 import { Doc } from "../../convex/_generated/dataModel";
 import { Button } from "./common/Button";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 
 type GameBoardProps = {
-  game: Doc<"games">;
   currentPlayer: Doc<"players">;
-  onMove: (index: number) => void;
-  onJoin: () => void;
-  onAddAI: () => void;
   onBack: () => void;
+  gameId: string;
 };
 
-export function GameBoard({
-  game,
-  currentPlayer,
-  onMove,
-  onJoin,
-  onAddAI,
-  onBack,
-}: GameBoardProps) {
+export function GameBoard({ currentPlayer, onBack, gameId }: GameBoardProps) {
+  const games = useQuery(api.games.list) ?? [];
+  const joinGame = useMutation(api.games.join);
+  const makeMove = useMutation(api.games.makeMove);
+  const addAI = useMutation(api.games.addAI);
+
+  const game = games.find((g) => g._id === gameId)!;
+  if (!game) return null;
+
   const isPlayerTurn = game.currentPlayerId === currentPlayer._id;
   const isInGame =
     game.playerOne.id === currentPlayer._id ||
@@ -101,7 +101,7 @@ export function GameBoard({
                     </span>
                     <Button
                       variant="success"
-                      onClick={onAddAI}
+                      onClick={() => addAI({ gameId: game._id })}
                       className="py-1 px-4 text-sm"
                     >
                       Add AI Player
@@ -114,7 +114,13 @@ export function GameBoard({
 
           {canJoin && (
             <div className="text-center mb-8">
-              <Button onClick={onJoin}>Join Game</Button>
+              <Button
+                onClick={() =>
+                  joinGame({ gameId: game._id, playerId: currentPlayer._id })
+                }
+              >
+                Join Game
+              </Button>
             </div>
           )}
 
@@ -126,7 +132,11 @@ export function GameBoard({
                   isPlayerTurn &&
                   !cell &&
                   game.state === "playing" &&
-                  onMove(index)
+                  makeMove({
+                    gameId: game._id,
+                    playerId: currentPlayer._id,
+                    index,
+                  })
                 }
                 disabled={!isPlayerTurn || !!cell || game.state !== "playing"}
                 className={`h-24 text-4xl font-bold rounded-lg transition-all duration-200 ${
