@@ -1,24 +1,26 @@
 import { useState } from "react";
-import type { Player } from "../types";
+import { useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import { Button } from "./common/Button";
+import { Id } from "../../convex/_generated/dataModel";
 
 type AuthProps = {
-  onAuth: (player: Player) => void;
+  onAuth: (playerId: Id<"players">) => void;
 };
 
 export function Auth({ onAuth }: AuthProps) {
   const [name, setName] = useState("");
+  const createPlayer = useMutation(api.players.create);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
-    const player: Player = {
+    const playerId = await createPlayer({
       name: name.trim(),
-      id: crypto.randomUUID(),
-      kind: "human",
-    };
-    onAuth(player);
+      kind: "human"
+    });
+    onAuth(playerId);
   };
 
   return (

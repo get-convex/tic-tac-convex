@@ -1,27 +1,48 @@
-import type { Game, Player } from "../types";
-import { Button } from "./common/Button";
+import { useQuery, useMutation } from "convex/react"
+import { api } from "../../convex/_generated/api"
+import { Id } from "../../convex/_generated/dataModel"
+import { Button } from "./common/Button"
 
 type GameBoardProps = {
-  game: Game;
-  currentPlayer: Player;
-  onMove: (index: number) => void;
-  onJoin: () => void;
-  onAddAI: () => void;
-  onBack: () => void;
-};
+  gameId: Id<"games">
+  currentPlayer: {
+    _id: Id<"players">
+    name: string
+    kind: "human" | "ai"
+  }
+  onMove: (index: number) => void
+  onJoin: () => void
+  onBack: () => void
+}
 
 export function GameBoard({
-  game,
+  gameId,
   currentPlayer,
   onMove,
   onJoin,
-  onAddAI,
   onBack,
 }: GameBoardProps) {
-  const isPlayerTurn = game.currentPlayer === currentPlayer.id;
-  const isInGame = game.players.some((p) => p.id === currentPlayer.id);
-  const canJoin =
-    game.state === "waiting" && !isInGame && game.players.length < 2;
+  const game = useQuery(api.games.get, { id: gameId })
+  const players = useQuery(api.players.getMultiple, game ? { ids: game.players } : "skip")
+  const createAI = useMutation(api.players.create)
+  const joinGame = useMutation(api.games.join)
+
+  if (!game || !players) return null
+
+  const isPlayerTurn = game.currentPlayer === currentPlayer._id
+  const isInGame = game.players.includes(currentPlayer._id)
+  const canJoin = game.state === "waiting" && !isInGame && game.players.length < 2
+
+  const handleAddAI = async () => {
+    const aiPlayer = await createAI({
+      name: "AI Player",
+      kind: "ai"
+    })
+    await joinGame({
+      gameId,
+      playerId: aiPlayer
+    })
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-8">
@@ -36,7 +57,7 @@ export function GameBoard({
               <span className="text-lg">←</span> Back to Games
             </Button>
             <div className="text-lg font-semibold text-indigo-600">
-              Game #{game.id.slice(0, 8)}
+              Game #{game._id.slice(0, 8)}
               <span
                 className={`px-3 py-1 rounded-full text-sm font-medium ml-2 ${
                   game.state === "waiting"
@@ -56,11 +77,11 @@ export function GameBoard({
               Players
             </h2>
             <div className="space-y-3">
-              {game.players.map((player) => (
+              {players.map(player => (
                 <div
-                  key={player.id}
+                  key={player._id}
                   className={`p-3 rounded-lg transition-all duration-300 ${
-                    game.currentPlayer === player.id
+                    game.currentPlayer === player._id
                       ? "bg-indigo-100 border-l-4 border-indigo-500"
                       : "bg-gray-50"
                   }`}
@@ -68,10 +89,10 @@ export function GameBoard({
                   <span className="font-medium text-gray-800">
                     {player.name}
                   </span>
-                  {player.id === currentPlayer.id && (
+                  {player._id === currentPlayer._id && (
                     <span className="ml-2 text-sm text-indigo-600">(You)</span>
                   )}
-                  {game.currentPlayer === player.id && (
+                  {game.currentPlayer === player._id && (
                     <span className="ml-2 text-sm text-green-600 animate-bounce-slow">
                       Current Turn
                     </span>
@@ -85,7 +106,7 @@ export function GameBoard({
                   </span>
                   <Button
                     variant="success"
-                    onClick={onAddAI}
+                    onClick={handleAddAI}
                     className="py-1 px-4 text-sm"
                   >
                     Add AI Player
@@ -131,7 +152,7 @@ export function GameBoard({
                 <div className="text-indigo-600">
                   Winner:{" "}
                   <span className="font-bold">
-                    {game.players.find((p) => p.id === game.winner)?.name}
+                    {players.find(p => p._id === game.winner)?.name}
                   </span>
                 </div>
               ) : (
@@ -154,5 +175,5 @@ export function GameBoard({
         </div>
       </div>
     </div>
-  );
+  )
 }
