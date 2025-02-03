@@ -1,5 +1,7 @@
-import type { Game, Player } from "../types";
+import type { Game, Player } from "../App";
 import { Button } from "./common/Button";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 
 type GameListProps = {
   games: Game[];
@@ -14,56 +16,67 @@ export function GameList({
   onCreateGame,
   onSelectGame,
 }: GameListProps) {
-  const activeGames = games.filter((game) => game.state !== "finished");
-  const finishedGames = games.filter((game) => game.state === "finished");
+  const players = useQuery(api.players.listPlayers) ?? [];
+  const activeGames = games.filter((game) => game.status !== "finished");
+  const finishedGames = games.filter((game) => game.status === "finished");
 
-  const GameCard = ({ game }: { game: Game }) => (
-    <div
-      key={game.id}
-      onClick={() => onSelectGame(game)}
-      className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1 cursor-pointer"
-    >
-      <div className="flex justify-between items-center mb-4">
-        <span className="text-lg font-semibold text-gray-800">
-          Game #{game.id.slice(0, 8)}
-        </span>
-        <span
-          className={`px-3 py-1 rounded-full text-sm font-medium ${
-            game.state === "waiting"
-              ? "bg-yellow-100 text-yellow-700"
-              : game.state === "playing"
-              ? "bg-green-100 text-green-700"
-              : "bg-gray-100 text-gray-700"
-          }`}
-        >
-          {game.state}
-        </span>
-      </div>
+  const GameCard = ({ game }: { game: Game }) => {
+    const playerX = game.playerX ? players.find((p: Player) => p._id === game.playerX) : undefined;
+    const playerO = game.playerO ? players.find((p: Player) => p._id === game.playerO) : undefined;
+    const gamePlayers = [playerX, playerO].filter((p): p is Player => !!p);
 
-      <div className="space-y-3">
-        <p className="text-gray-600 font-medium">Players:</p>
-        <ul className="space-y-2">
-          {game.players.map((player) => (
-            <li
-              key={player.id}
-              className="flex items-center text-gray-700 gap-2"
-            >
-              <span className="w-2 h-2 rounded-full bg-indigo-400"></span>
-              <span className="font-medium">
-                {player.name}
-                {player.id === currentPlayer.id && (
-                  <span className="ml-2 text-sm text-indigo-600">(You)</span>
-                )}
-                {game.state === "finished" && game.winner === player.id && (
-                  <span className="ml-2 text-sm text-green-600">(Winner!)</span>
-                )}
-              </span>
-            </li>
-          ))}
-        </ul>
+    return (
+      <div
+        key={game._id}
+        onClick={() => onSelectGame(game)}
+        className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1 cursor-pointer"
+      >
+        <div className="flex justify-between items-center mb-4">
+          <span className="text-lg font-semibold text-gray-800">
+            Game #{game._id.slice(0, 8)}
+          </span>
+          <span
+            className={`px-3 py-1 rounded-full text-sm font-medium ${
+              game.status === "waiting"
+                ? "bg-yellow-100 text-yellow-700"
+                : game.status === "playing"
+                ? "bg-green-100 text-green-700"
+                : "bg-gray-100 text-gray-700"
+            }`}
+          >
+            {game.status}
+          </span>
+        </div>
+
+        <div className="space-y-3">
+          <p className="text-gray-600 font-medium">Players:</p>
+          <ul className="space-y-2">
+            {gamePlayers.map((player) => (
+              <li
+                key={player._id}
+                className="flex items-center text-gray-700 gap-2"
+              >
+                <span className="w-2 h-2 rounded-full bg-indigo-400"></span>
+                <span className="font-medium">
+                  {player.name}
+                  {player._id === currentPlayer._id && (
+                    <span className="ml-2 text-sm text-indigo-600">(You)</span>
+                  )}
+                  {game.status === "finished" && 
+                   ((game.winner === "X" && game.playerX === player._id) ||
+                    (game.winner === "O" && game.playerO === player._id)) && (
+                    <span className="ml-2 text-sm text-green-600">(Winner!)</span>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
+
+  if (!players) return <div>Loading...</div>;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-8">
@@ -92,7 +105,7 @@ export function GameList({
             </h2>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {activeGames.map((game) => (
-                <GameCard key={game.id} game={game} />
+                <GameCard key={game._id} game={game} />
               ))}
             </div>
           </div>
@@ -105,7 +118,7 @@ export function GameList({
             </h2>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {finishedGames.map((game) => (
-                <GameCard key={game.id} game={game} />
+                <GameCard key={game._id} game={game} />
               ))}
             </div>
           </div>

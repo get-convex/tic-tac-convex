@@ -1,10 +1,12 @@
-import type { Game, Player } from "../types";
+import type { Game, Player } from "../App";
 import { Button } from "./common/Button";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 
 type GameBoardProps = {
   game: Game;
   currentPlayer: Player;
-  onMove: (index: number) => void;
+  onMove: (position: number) => void;
   onJoin: () => void;
   onAddAI: () => void;
   onBack: () => void;
@@ -18,10 +20,18 @@ export function GameBoard({
   onAddAI,
   onBack,
 }: GameBoardProps) {
-  const isPlayerTurn = game.currentPlayer === currentPlayer.id;
-  const isInGame = game.players.some((p) => p.id === currentPlayer.id);
-  const canJoin =
-    game.state === "waiting" && !isInGame && game.players.length < 2;
+  const players = useQuery(api.players.listPlayers) ?? [];
+  const playerX = game.playerX ? players.find((p: Player) => p._id === game.playerX) : undefined;
+  const playerO = game.playerO ? players.find((p: Player) => p._id === game.playerO) : undefined;
+  const gamePlayers = [playerX, playerO].filter((p): p is Player => !!p);
+
+  const isPlayerTurn = 
+    (game.currentPlayer === "X" && game.playerX === currentPlayer._id) ||
+    (game.currentPlayer === "O" && game.playerO === currentPlayer._id);
+  const isInGame = game.playerX === currentPlayer._id || game.playerO === currentPlayer._id;
+  const canJoin = game.status === "waiting" && !isInGame && (!game.playerX || !game.playerO);
+
+  if (!players) return <div>Loading...</div>;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-8">
@@ -36,17 +46,17 @@ export function GameBoard({
               <span className="text-lg">←</span> Back to Games
             </Button>
             <div className="text-lg font-semibold text-indigo-600">
-              Game #{game.id.slice(0, 8)}
+              Game #{game._id.slice(0, 8)}
               <span
                 className={`px-3 py-1 rounded-full text-sm font-medium ml-2 ${
-                  game.state === "waiting"
+                  game.status === "waiting"
                     ? "bg-yellow-100 text-yellow-700"
-                    : game.state === "playing"
+                    : game.status === "playing"
                     ? "bg-green-100 text-green-700"
                     : "bg-gray-100 text-gray-700"
                 }`}
               >
-                {game.state.charAt(0).toUpperCase() + game.state.slice(1)}
+                {game.status.charAt(0).toUpperCase() + game.status.slice(1)}
               </span>
             </div>
           </div>
@@ -56,11 +66,12 @@ export function GameBoard({
               Players
             </h2>
             <div className="space-y-3">
-              {game.players.map((player) => (
+              {gamePlayers.map(player => (
                 <div
-                  key={player.id}
+                  key={player._id}
                   className={`p-3 rounded-lg transition-all duration-300 ${
-                    game.currentPlayer === player.id
+                    (game.currentPlayer === "X" && game.playerX === player._id) ||
+                    (game.currentPlayer === "O" && game.playerO === player._id)
                       ? "bg-indigo-100 border-l-4 border-indigo-500"
                       : "bg-gray-50"
                   }`}
@@ -68,17 +79,18 @@ export function GameBoard({
                   <span className="font-medium text-gray-800">
                     {player.name}
                   </span>
-                  {player.id === currentPlayer.id && (
+                  {player._id === currentPlayer._id && (
                     <span className="ml-2 text-sm text-indigo-600">(You)</span>
                   )}
-                  {game.currentPlayer === player.id && (
+                  {(game.currentPlayer === "X" && game.playerX === player._id) ||
+                   (game.currentPlayer === "O" && game.playerO === player._id) && (
                     <span className="ml-2 text-sm text-green-600 animate-bounce-slow">
                       Current Turn
                     </span>
                   )}
                 </div>
               ))}
-              {game.state === "waiting" && (
+              {game.status === "waiting" && (
                 <div className="p-3 rounded-lg bg-yellow-50 border-l-4 border-yellow-500 flex justify-between items-center">
                   <span className="font-medium text-yellow-700">
                     Waiting for second player...
@@ -107,13 +119,13 @@ export function GameBoard({
                 key={index}
                 onClick={() =>
                   isPlayerTurn &&
-                  !cell &&
-                  game.state === "playing" &&
+                  cell === "" &&
+                  game.status === "playing" &&
                   onMove(index)
                 }
-                disabled={!isPlayerTurn || !!cell || game.state !== "playing"}
+                disabled={!isPlayerTurn || cell !== "" || game.status !== "playing"}
                 className={`h-24 text-4xl font-bold rounded-lg transition-all duration-200 ${
-                  !cell && game.state === "playing" && isPlayerTurn
+                  cell === "" && game.status === "playing" && isPlayerTurn
                     ? "bg-gray-50 hover:bg-indigo-50 hover:shadow-md"
                     : "bg-gray-50"
                 } flex items-center justify-center ${
@@ -125,13 +137,17 @@ export function GameBoard({
             ))}
           </div>
 
-          {game.state === "finished" && (
+          {game.status === "finished" && (
             <div className="text-center text-xl font-semibold p-4 bg-indigo-50 rounded-lg">
               {game.winner ? (
                 <div className="text-indigo-600">
                   Winner:{" "}
                   <span className="font-bold">
-                    {game.players.find((p) => p.id === game.winner)?.name}
+                    {game.winner === "X" 
+                      ? playerX?.name 
+                      : game.winner === "O" 
+                      ? playerO?.name 
+                      : "Draw"}
                   </span>
                 </div>
               ) : (
@@ -140,7 +156,7 @@ export function GameBoard({
             </div>
           )}
 
-          {game.state === "playing" && (
+          {game.status === "playing" && (
             <div className="text-center text-gray-600 p-4 bg-gray-50 rounded-lg">
               {isPlayerTurn ? (
                 <span className="text-green-600 font-medium">
