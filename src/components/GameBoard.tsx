@@ -1,25 +1,39 @@
-import type { Game, Player } from "../types";
 import { Button } from "./common/Button";
+import { api } from "@convex/_generated/api";
+import { useQuery } from "convex/react";
+import { Id } from "@convex/_generated/dataModel";
+import { ConvexGame, ConvexPlayer } from "../convexSchemaTypes";
+import { useState } from "react";
 
 type GameBoardProps = {
-  game: Game;
-  currentPlayer: Player;
-  onMove: (index: number) => void;
-  onJoin: () => void;
-  onAddAI: () => void;
+  gameId: Id<"games">;
+  currentPlayerId: Id<"players">;
+  onMove: (index: number) => Promise<void>;
+  onJoin: () => Promise<void>;
+  onAddAI: () => Promise<void>;
   onBack: () => void;
+  isLoading?: boolean;
 };
 
 export function GameBoard({
-  game,
-  currentPlayer,
+  gameId,
+  currentPlayerId,
   onMove,
   onJoin,
   onAddAI,
   onBack,
+  isLoading: externalLoading = false,
 }: GameBoardProps) {
-  const isPlayerTurn = game.currentPlayer === currentPlayer.id;
-  const isInGame = game.players.some((p) => p.id === currentPlayer.id);
+  const [localLoading, setLocalLoading] = useState(false);
+  const game = useQuery(api.queries.getGame, { gameId });
+  const currentPlayer = useQuery(api.queries.getPlayer, { playerId: currentPlayerId });
+
+  const isLoading = externalLoading || localLoading;
+
+  if (!game || !currentPlayer) return null;
+
+  const isPlayerTurn = game.currentPlayer === currentPlayerId;
+  const isInGame = game.players.some((p: ConvexPlayer & { symbol: "X" | "O" }) => p._id === currentPlayerId);
   const canJoin =
     game.state === "waiting" && !isInGame && game.players.length < 2;
 
@@ -32,11 +46,12 @@ export function GameBoard({
               variant="secondary"
               onClick={onBack}
               className="flex items-center gap-2"
+              disabled={isLoading}
             >
               <span className="text-lg">←</span> Back to Games
             </Button>
             <div className="text-lg font-semibold text-indigo-600">
-              Game #{game.id.slice(0, 8)}
+              Game #{game._id.slice(0, 8)}
               <span
                 className={`px-3 py-1 rounded-full text-sm font-medium ml-2 ${
                   game.state === "waiting"
@@ -56,11 +71,11 @@ export function GameBoard({
               Players
             </h2>
             <div className="space-y-3">
-              {game.players.map((player) => (
+              {game.players.map((player: ConvexPlayer & { symbol: "X" | "O" }) => (
                 <div
-                  key={player.id}
+                  key={player._id}
                   className={`p-3 rounded-lg transition-all duration-300 ${
-                    game.currentPlayer === player.id
+                    game.currentPlayer === player._id
                       ? "bg-indigo-100 border-l-4 border-indigo-500"
                       : "bg-gray-50"
                   }`}
@@ -68,10 +83,10 @@ export function GameBoard({
                   <span className="font-medium text-gray-800">
                     {player.name}
                   </span>
-                  {player.id === currentPlayer.id && (
+                  {player._id === currentPlayerId && (
                     <span className="ml-2 text-sm text-indigo-600">(You)</span>
                   )}
-                  {game.currentPlayer === player.id && (
+                  {game.currentPlayer === player._id && (
                     <span className="ml-2 text-sm text-green-600 animate-bounce-slow">
                       Current Turn
                     </span>
@@ -85,8 +100,16 @@ export function GameBoard({
                   </span>
                   <Button
                     variant="success"
-                    onClick={onAddAI}
+                    onClick={async () => {
+                      setLocalLoading(true);
+                      try {
+                        await onAddAI();
+                      } finally {
+                        setLocalLoading(false);
+                      }
+                    }}
                     className="py-1 px-4 text-sm"
+                    isLoading={isLoading}
                   >
                     Add AI Player
                   </Button>
@@ -97,28 +120,43 @@ export function GameBoard({
 
           {canJoin && (
             <div className="text-center mb-8">
-              <Button onClick={onJoin}>Join Game</Button>
+              <Button
+                onClick={async () => {
+                  setLocalLoading(true);
+                  try {
+                    await onJoin();
+                  } finally {
+                    setLocalLoading(false);
+                  }
+                }}
+                isLoading={isLoading}
+              >
+                Join Game
+              </Button>
             </div>
           )}
 
           <div className="grid grid-cols-3 gap-4 mb-8">
-            {game.board.map((cell, index) => (
+            {game.board.map((cell: "X" | "O" | null, index: number) => (
               <button
                 key={index}
-                onClick={() =>
-                  isPlayerTurn &&
-                  !cell &&
-                  game.state === "playing" &&
-                  onMove(index)
-                }
-                disabled={!isPlayerTurn || !!cell || game.state !== "playing"}
+                onClick={async () => {
+                  if (!isPlayerTurn || !!cell || game.state !== "playing" || isLoading) return;
+                  setLocalLoading(true);
+                  try {
+                    await onMove(index);
+                  } finally {
+                    setLocalLoading(false);
+                  }
+                }}
+                disabled={!isPlayerTurn || !!cell || game.state !== "playing" || isLoading}
                 className={`h-24 text-4xl font-bold rounded-lg transition-all duration-200 ${
-                  !cell && game.state === "playing" && isPlayerTurn
+                  !cell && game.state === "playing" && isPlayerTurn && !isLoading
                     ? "bg-gray-50 hover:bg-indigo-50 hover:shadow-md"
                     : "bg-gray-50"
                 } flex items-center justify-center ${
                   cell === "X" ? "text-indigo-600" : "text-pink-500"
-                }`}
+                } ${isLoading ? "cursor-wait" : ""}`}
               >
                 {cell}
               </button>
@@ -131,7 +169,7 @@ export function GameBoard({
                 <div className="text-indigo-600">
                   Winner:{" "}
                   <span className="font-bold">
-                    {game.players.find((p) => p.id === game.winner)?.name}
+                    {game.players.find((p: ConvexPlayer & { symbol: "X" | "O" }) => p._id === game.winner)?.name}
                   </span>
                 </div>
               ) : (

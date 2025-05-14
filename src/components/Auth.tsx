@@ -1,24 +1,28 @@
 import { useState } from "react";
-import type { Player } from "../types";
 import { Button } from "./common/Button";
+import { Id } from "@convex/_generated/dataModel";
 
 type AuthProps = {
-  onAuth: (player: Player) => void;
+  onAuth: (player: { name: string; kind: "human" | "ai" }) => Promise<Id<"players">>;
 };
 
 export function Auth({ onAuth }: AuthProps) {
   const [name, setName] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || isSubmitting) return;
 
-    const player: Player = {
-      name: name.trim(),
-      id: crypto.randomUUID(),
-      kind: "human",
-    };
-    onAuth(player);
+    setIsSubmitting(true);
+    try {
+      await onAuth({
+        name: name.trim(),
+        kind: "human",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

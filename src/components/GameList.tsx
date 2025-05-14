@@ -1,31 +1,38 @@
-import type { Game, Player } from "../types";
 import { Button } from "./common/Button";
+import { api } from "@convex/_generated/api";
+import { useQuery } from "convex/react";
+import { Id } from "@convex/_generated/dataModel";
+import { ConvexGame } from "../convexSchemaTypes";
+import { useState } from "react";
 
 type GameListProps = {
-  games: Game[];
-  currentPlayer: Player;
-  onCreateGame: () => void;
-  onSelectGame: (game: Game) => void;
+  games: ConvexGame[];
+  currentPlayerId: Id<"players">;
+  onCreateGame: () => Promise<void>;
+  onSelectGame: (game: ConvexGame) => void;
 };
 
 export function GameList({
   games,
-  currentPlayer,
+  currentPlayerId,
   onCreateGame,
   onSelectGame,
 }: GameListProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const currentPlayer = useQuery(api.queries.getPlayer, { playerId: currentPlayerId });
+  if (!currentPlayer) return null;
+
   const activeGames = games.filter((game) => game.state !== "finished");
   const finishedGames = games.filter((game) => game.state === "finished");
-
-  const GameCard = ({ game }: { game: Game }) => (
+  const GameCard = ({ game }: { game: ConvexGame }) => (
     <div
-      key={game.id}
+      key={game._id}
       onClick={() => onSelectGame(game)}
       className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1 cursor-pointer"
     >
       <div className="flex justify-between items-center mb-4">
         <span className="text-lg font-semibold text-gray-800">
-          Game #{game.id.slice(0, 8)}
+          Game #{game._id.slice(0, 8)}
         </span>
         <span
           className={`px-3 py-1 rounded-full text-sm font-medium ${
@@ -45,16 +52,16 @@ export function GameList({
         <ul className="space-y-2">
           {game.players.map((player) => (
             <li
-              key={player.id}
+              key={player._id}
               className="flex items-center text-gray-700 gap-2"
             >
               <span className="w-2 h-2 rounded-full bg-indigo-400"></span>
               <span className="font-medium">
                 {player.name}
-                {player.id === currentPlayer.id && (
+                {player._id === currentPlayerId && (
                   <span className="ml-2 text-sm text-indigo-600">(You)</span>
                 )}
-                {game.state === "finished" && game.winner === player.id && (
+                {game.state === "finished" && game.winner === player._id && (
                   <span className="ml-2 text-sm text-green-600">(Winner!)</span>
                 )}
               </span>
@@ -72,8 +79,19 @@ export function GameList({
           <h1 className="text-3xl font-bold text-gray-800">
             Welcome,{" "}
             <span className="text-indigo-600">{currentPlayer.name}</span>!
-          </h1>
-          <Button onClick={onCreateGame}>Create New Game</Button>
+          </h1>          <Button
+            onClick={async () => {
+              setIsLoading(true);
+              try {
+                await onCreateGame();
+              } finally {
+                setIsLoading(false);
+              }
+            }}
+            isLoading={isLoading}
+          >
+            Create New Game
+          </Button>
         </div>
 
         {activeGames.length === 0 && finishedGames.length === 0 && (
@@ -81,7 +99,19 @@ export function GameList({
             <p className="text-gray-600 text-lg mb-4">
               No games available. Create a new one to start playing!
             </p>
-            <Button onClick={onCreateGame}>Create New Game</Button>
+            <Button
+              onClick={async () => {
+                setIsLoading(true);
+                try {
+                  await onCreateGame();
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+              isLoading={isLoading}
+            >
+              Create New Game
+            </Button>
           </div>
         )}
 
@@ -89,10 +119,9 @@ export function GameList({
           <div className="mb-12">
             <h2 className="text-2xl font-bold text-gray-500/70 mb-6">
               Active Games
-            </h2>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            </h2>            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {activeGames.map((game) => (
-                <GameCard key={game.id} game={game} />
+                <GameCard key={game._id} game={game} />
               ))}
             </div>
           </div>
@@ -105,7 +134,7 @@ export function GameList({
             </h2>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {finishedGames.map((game) => (
-                <GameCard key={game.id} game={game} />
+                <GameCard key={game._id} game={game} />
               ))}
             </div>
           </div>
