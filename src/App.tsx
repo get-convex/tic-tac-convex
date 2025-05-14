@@ -2,25 +2,21 @@ import { Auth } from "./components/Auth";
 import { GameList } from "./components/GameList";
 import { GameBoard } from "./components/GameBoard";
 import { useRoute, routes } from "./routes";
-import { useGameState } from "./game/useGameState";
-import { useAIPlayer } from "./game/useAIPlayer";
+import { useConvexGame } from "./game/useConvexGame";
 import { Redirect } from "./components/common/Redirect";
+import { Id } from "../convex/_generated/dataModel";
 
-function App() {
-  const {
+function App() {  const {
     currentPlayer,
     setCurrentPlayer,
     games,
-    setGames,
     createGame,
     joinGame,
     addAI,
     makeMove,
-  } = useGameState();
+  } = useConvexGame();
 
   const route = useRoute();
-
-  useAIPlayer(games, setGames);
 
   if (!currentPlayer && route.name !== "auth")
     return <Redirect to={routes.auth} />;
@@ -46,23 +42,18 @@ function App() {
           onCreateGame={() => currentPlayer && createGame(currentPlayer)}
           onSelectGame={(game) => routes.gameBoard({ gameId: game.id }).push()}
         />
-      )}
-
-      {route.name === "gameBoard" && route.params.gameId && (
+      )}      {route.name === "gameBoard" && route.params.gameId && (
         <GameBoard
           game={games.find((g) => g.id === route.params.gameId)!}
           currentPlayer={currentPlayer!}
           onMove={(index) => {
-            const game = games.find((g) => g.id === route.params.gameId);
-            if (game) makeMove(game, index, currentPlayer!);
+            makeMove(route.params.gameId as Id<"games">, currentPlayer!.id as Id<"players">, index);
           }}
           onJoin={() => {
-            const game = games.find((g) => g.id === route.params.gameId);
-            if (game) joinGame(game, currentPlayer!);
+            joinGame(route.params.gameId as Id<"games">, currentPlayer!);
           }}
           onAddAI={() => {
-            const game = games.find((g) => g.id === route.params.gameId);
-            if (game) addAI(game);
+            addAI(route.params.gameId as Id<"games">);
           }}
           onBack={() => routes.gameList().push()}
         />
